@@ -1,0 +1,20 @@
+# Ambientes virtuais (pesado e desnecessário no cloud)
+.venv/
+venv/
+env/
+
+# Variáveis de ambiente (SEGURANÇA: contem sua API Key)
+.env
+
+# Python cache (arquivos temporários)
+__pycache__/
+*.pyc
+
+# Banco de dados (Opcional: geralmente não subimos o DB, o script cria um novo)
+*.db
+*.sqlite3
+
+# Executáveis e logs
+*.exe
+ngrok.exe
+*.log

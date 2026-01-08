@@ -1,0 +1,132 @@
+{% extends "layout.html" %}
+{% block title %}Sobre o Projeto / About Project{% endblock %}
+
+{% block head %}
+<style>
+    .doc-panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 30px; margin-bottom: 24px; }
+    .doc-title { font-size: 18px; color: #58a6ff; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .doc-section-header { font-size: 16px; color: #e6edf3; margin-bottom: 10px; font-weight: 700; display:flex; align-items:center; gap:8px;}
+    .doc-text { font-size: 14px; color: #8b949e; line-height: 1.7; margin-bottom: 25px; }
+    .tech-tag { display: inline-block; background: rgba(56, 139, 253, 0.1); padding: 5px 12px; border-radius: 20px; font-size: 12px; color: #58a6ff; margin-right: 8px; border: 1px solid rgba(56, 139, 253, 0.3); margin-bottom: 8px; font-family: monospace; }
+    hr.sep { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header>
+    <h1 style="margin:0; font-size: 24px;">Visão Geral / Project Overview</h1>
+    <div style="font-size:12px; color:#8b949e;">Objetivo, Arquitetura e Engenharia / Objective, Architecture & Engineering</div>
+</header>
+
+<div class="doc-panel">
+    <div class="doc-title"><i class="fas fa-bullseye"></i> Missão e Escopo / Mission & Scope</div>
+
+    <div class="doc-section-header">Objetivo</div>
+    <p class="doc-text">
+        O PolySentinel nasceu da observação de que movimentos financeiros relevantes muitas vezes antecedem
+        a divulgação de notícias nos meios tradicionais. Ao acompanhar o Polymarket em tempo real,
+        a ferramenta busca destacar padrões atípicos que possam indicar apostas de alta convicção
+        ou acesso antecipado à informação.
+    </p>
+
+    <div class="doc-section-header">Objective</div>
+    <p class="doc-text">
+        PolySentinel was built from the observation that meaningful capital movements often happen before
+        information reaches traditional media. By monitoring Polymarket in real time, the system aims to
+        surface unusual activity that may reflect high-conviction positioning or access to early information.
+    </p>
+
+    <hr class="sep">
+
+    <div class="doc-section-header">O Projeto</div>
+    <p class="doc-text">
+        A ideia do PolySentinel surgiu quase como um experimento, ao observar manualmente grandes apostas
+        em eventos políticos e perceber que o mercado frequentemente se movia antes das manchetes.
+        O projeto transforma essa curiosidade em um sistema contínuo de observação e análise.
+    </p>
+
+    <div class="doc-section-header">The Project</div>
+    <p class="doc-text" style="margin-bottom:0;">
+        The initial idea came from manually tracking large bets during major political events and noticing
+        that price action frequently moved ahead of public narratives. This project formalizes that curiosity
+        into a system that continuously observes and structures those signals.
+    </p>
+
+    <div style="margin-top: 25px;">
+        <span class="tech-tag">Inteligência em Tempo Real / Real-Time Intelligence</span>
+        <span class="tech-tag">Forense Financeira / Financial Forensics</span>
+        <span class="tech-tag">Rastreamento de Whales / Whale Tracking</span>
+    </div>
+</div>
+
+<div class="doc-panel">
+    <div class="doc-title"><i class="fas fa-network-wired"></i> Arquitetura / Architecture</div>
+
+    <div class="doc-section-header">Sistema de Duplo Pipeline / Dual-Pipeline System</div>
+    <p class="doc-text">
+        O backend opera com dois fluxos complementares, cada um voltado a um tipo distinto de análise.<br>
+        <strong style="color:#e6edf3;">Stream A (Modo Bets Geral):</strong> Prioriza apostas pequenas e frequentes (acima de $20),
+        permitindo observar ritmo de mercado, variações de sentimento e participação do varejo.<br>
+        <strong style="color:#e6edf3;">Stream B (Modo Insider):</strong> Aplica uma lógica de agregação em “escada” dentro de
+        janelas móveis de 10 minutos. Ao ultrapassar $3.000 por carteira, o sistema aciona uma análise forense mais profunda.
+    </p>
+
+    <div class="doc-section-header" style="opacity: 0.7; font-size: 14px;">English Overview</div>
+    <p class="doc-text" style="margin-bottom:0;">
+        The backend is organized around two complementary processing paths, each optimized for a different
+        analytical goal.<br>
+        <strong style="color:#e6edf3;">Stream A (General Bets Mode):</strong> Focuses on high-frequency, low-value bets (>$20),
+        helping visualize market tempo, sentiment shifts, and general retail participation.<br>
+        <strong style="color:#e6edf3;">Stream B (Insider Mode):</strong> Uses a ladder-style aggregation model over rolling
+        10-minute windows. When a single wallet exceeds $3,000 in accumulated volume, a deeper forensic scan is triggered.
+    </p>
+
+    <div style="margin-top: 25px;">
+        <span class="tech-tag">Pipeline Duplo / Dual-Pipeline</span>
+        <span class="tech-tag">Lógica de Escada / Ladder Logic</span>
+        <span class="tech-tag">Fluxos Assíncronos / Async Streams</span>
+    </div>
+</div>
+
+<div class="doc-panel">
+    <div class="doc-title"><i class="fas fa-cogs"></i> Desafios de Engenharia / Engineering Challenges</div>
+
+    <p class="doc-text">
+        <strong>Gerenciar limites de taxa da API mantendo latência abaixo de 200ms.</strong>
+        A solução envolveu escolhas práticas: uso de buckets em memória para pré-agregação,
+        persistência seletiva e controle de concorrência para evitar bloqueios no SQLite
+        durante picos de volume. Cache e gravações em lote foram adicionados conforme
+        gargalos surgiam, garantindo desempenho sem complexidade excessiva.
+    </p>
+
+    <p class="doc-text" style="margin-bottom:0;">
+        <strong>Handling API rate limits while keeping latency under 200ms.</strong>
+        This required trade-offs. The solution combines in-memory aggregation buckets,
+        selective persistence, and concurrency-aware access patterns to avoid SQLite
+        read/write contention during traffic spikes. Caching and batch writes were
+        gradually introduced as bottlenecks appeared, helping maintain throughput
+        without adding unnecessary complexity.
+    </p>
+
+    <div style="margin-top: 25px;">
+        <span class="tech-tag">Computação Distribuída / Edge Computing</span>
+        <span class="tech-tag">Processamento em Lotes / Batch Processing</span>
+        <span class="tech-tag">Alta Concorrência / High Concurrency</span>
+    </div>
+</div>
+
+<div class="doc-panel">
+    <div class="doc-title"><i class="fas fa-code"></i> Tecnologia / Tech Stack</div>
+
+    <div>
+        <span class="tech-tag">Python</span>
+        <span class="tech-tag">Flask</span>
+        <span class="tech-tag">SQLite</span>
+        <span class="tech-tag">Async IO</span>
+        <span class="tech-tag">Polymarket Gamma API</span>
+        <span class="tech-tag">PolygonScan API</span>
+        <span class="tech-tag">HTML5 / JS (Vanilla)</span>
+        <span class="tech-tag">ngrok</span>
+    </div>
+</div>
+{% endblock %}

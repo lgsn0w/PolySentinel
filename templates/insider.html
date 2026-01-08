@@ -1,0 +1,177 @@
+{% extends "layout.html" %}
+{% block title %}Insider Intelligence{% endblock %}
+
+{% block head %}
+<style>
+/* TABLE & UI */
+.data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.data-table th { text-align: left; padding: 12px; border-bottom: 2px solid #30363d; color: #8b949e; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.data-table td { padding: 12px; border-bottom: 1px solid #30363d; vertical-align: middle; }
+.data-table tr:hover { background: rgba(255,255,255,0.02); }
+.wallet-link { font-family: monospace; color: #e6edf3; text-decoration: none; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.wallet-link:hover { color: #58a6ff; }
+.market-truncate { max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #e6edf3; font-size: 13px; }
+.time-badge { font-size: 12px; color: #8b949e; font-family: monospace; }
+.btn-action { background: #238636; border: none; color: white; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+.btn-action:hover { background: #2ea043; }
+
+
+.empty-state {
+    display: none;
+    padding: 60px;
+    text-align: center;
+    border: 1px dashed #30363d;
+    border-radius: 8px;
+    background: rgba(22, 27, 34, 0.5);
+    width: 90%;
+    max-width: 800px;
+    margin: 40px auto;
+    box-sizing: border-box;
+}
+
+.radar-pulse { width: 40px; height: 40px; background: rgba(88, 166, 255, 0.2); border-radius: 50%; margin: 0 auto 20px; animation: radar 2s infinite; position: relative; }
+.radar-pulse::after { content: ''; position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; background: #58a6ff; border-radius: 50%; transform: translate(-50%, -50%); }
+@keyframes radar { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
+
+/* DOSSIER PANEL */
+.dossier-panel { position: fixed; top: 0; right: -480px; width: 480px; height: 100%; background: #0d1117; border-left: 1px solid #30363d; transition: right 0.3s ease-in-out; padding: 30px; box-shadow: -15px 0 40px rgba(0,0,0,0.6); z-index: 1000; overflow-y: auto; }
+.dossier-panel.open { right: 0; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; margin-bottom: 30px; }
+.stat-box { background: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 6px; }
+.stat-label { font-size: 10px; color: #8b949e; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+.stat-value { font-size: 16px; color: #e6edf3; font-weight: 600; font-family: monospace; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header>
+    <h1 style="margin:0; font-size: 24px;">Insider Info</h1>
+    <div style="font-size:12px; color:#8b949e; display:flex; align-items:center; gap:10px;">
+        <span id="global-timer">Syncing...</span>
+        <div style="width:8px; height:8px; background:#3fb950; border-radius:50%; box-shadow:0 0 8px #3fb950;"></div>
+    </div>
+</header>
+
+<div class="panel" style="background:#161b22; border-radius:8px; overflow:hidden; border:1px solid #30363d; min-height: 400px; position: relative;">
+    <div id="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 25%;">Polymarket Profile</th>
+                    <th style="width: 35%;">Top Position (Focus)</th>
+                    <th style="width: 15%;">Last Active</th>
+                    <th style="width: 15%;">Total Scanned</th>
+                    <th style="width: 10%; text-align:right;">Intel</th>
+                </tr>
+            </thead>
+            <tbody id="roster-body"></tbody>
+        </table>
+    </div>
+
+    <div id="empty-state" class="empty-state">
+        <div class="radar-pulse"></div>
+        <h3 style="color:#e6edf3; font-size:20px; margin-bottom:10px;">Hunting Whales and Scanning for Insiders...</h3>
+        <p style="color:#8b949e; font-size:15px; max-width: 600px; margin: 0 auto; line-height: 1.5;">
+            The Insider Database is currently empty. The Sentinel is actively filtering for transactions >$1k in real-time. Data will appear here automatically when detected.
+        </p>
+        <hr style="border:0; border-top:1px solid #30363d; margin: 30px auto; width: 50px; opacity: 0.5;">
+        <h3 style="color:#e6edf3; font-size:20px; margin-bottom:10px;">Caçando Baleias e Vigiando os Bastidores...</h3>
+        <p style="color:#8b949e; font-size:15px; max-width: 600px; margin: 0 auto; line-height: 1.5;">
+            O banco de dados está vazio. O Sentinel está monitorando apostas >$1k em tempo real. Os dados aparecerão aqui automaticamente assim que uma "Whale" ou um Insider for detectado.
+        </p>
+    </div>
+</div>
+
+<div id="dossier" class="dossier-panel">
+    <button onclick="closeDossier()" style="float:right; background:none; border:none; color:#e6edf3; cursor:pointer; font-size:16px;">✕</button>
+    <div style="margin-top:20px;">
+        <div style="font-size:11px; color:#8b949e; margin-bottom:4px;">WALLET</div>
+
+        <a id="d-link" href="#" target="_blank" class="wallet-link" style="font-size:15px; margin-bottom: 8px;">
+            <span id="d-addr">...</span> <i class="fas fa-external-link-alt"></i>
+        </a>
+
+        <a id="d-scan-link" href="#" target="_blank" class="wallet-link" style="font-size:12px; color:#58a6ff;">
+            <i class="fas fa-search-dollar"></i> View on PolygonScan
+        </a>
+    </div>
+
+    <div class="stat-grid">
+        <div class="stat-box"><div class="stat-label">Total Volume Tracked</div><div class="stat-value" id="d-volume">...</div></div>
+        <div class="stat-box"><div class="stat-label">Funding Source</div><div class="stat-value" id="d-source">...</div></div>
+        <div class="stat-box"><div class="stat-label">Last Activity</div><div class="stat-value" id="d-last">...</div></div>
+        <div class="stat-box"><div class="stat-label">Max Single Bet</div><div class="stat-value" id="d-max-bet">...</div></div>
+    </div>
+    <div id="d-history" style="font-size:13px; display:flex; flex-direction:column; gap:10px;"></div>
+</div>
+
+<script>
+    async function loadInsider() {
+        try {
+            const res = await fetch('/api/insider_data');
+            const data = await res.json();
+            document.getElementById('global-timer').innerText = "Last Update: " + new Date().toLocaleTimeString();
+
+            if (data.latency && document.getElementById('sys-latency')) {
+                document.getElementById('sys-latency').innerText = data.latency + "ms";
+            }
+
+            const tableContainer = document.getElementById('table-container');
+            const emptyState = document.getElementById('empty-state');
+
+            if (!data.roster || data.roster.length === 0) {
+                tableContainer.style.display = 'none';
+                emptyState.style.display = 'block';
+            } else {
+                tableContainer.style.display = 'block';
+                emptyState.style.display = 'none';
+
+                document.getElementById('roster-body').innerHTML = data.roster.map(w => {
+                    const now = Math.floor(Date.now() / 1000);
+                    const diff = now - w.last_active_ts;
+                    let timeStr = diff + "s ago";
+                    if(diff > 60) timeStr = Math.floor(diff/60) + "m ago";
+                    if(diff > 3600) timeStr = Math.floor(diff/3600) + "h ago";
+
+                    return `<tr>
+                        <td><a href="https://polymarket.com/profile/${w.address}" target="_blank" class="wallet-link"><i class="fas fa-user-circle" style="color:#8b949e;"></i> ${w.address.substring(0,6)}...${w.address.substring(38)}</a></td>
+                        <td><div class="market-truncate" title="${w.top_market}">${w.top_market || '...'}</div></td>
+                        <td class="time-badge">${timeStr}</td>
+                        <td><span class="money">$${w.total_scanned_volume.toLocaleString()}</span></td>
+                        <td style="text-align:right;"><button class="btn-action" onclick="openDossier('${w.address}', '${w.funding_source}', ${w.last_active_ts}, ${w.max_bet}, ${w.total_scanned_volume})">DOSSIER</button></td>
+                    </tr>`;
+                }).join('');
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    async function openDossier(addr, source, lastTs, maxBet, scanVol) {
+        document.getElementById('dossier').classList.add('open');
+        document.getElementById('d-addr').innerText = addr;
+
+        document.getElementById('d-link').href = `https://polymarket.com/profile/${addr}`;
+        document.getElementById('d-scan-link').href = `https://polygonscan.com/address/${addr}`;
+
+        document.getElementById('d-volume').innerText = "$" + scanVol.toLocaleString();
+        document.getElementById('d-source').innerText = source || "Unknown";
+        document.getElementById('d-max-bet').innerText = "$" + maxBet.toLocaleString();
+        document.getElementById('d-last').innerText = new Date(lastTs * 1000).toLocaleString();
+
+        document.getElementById('d-history').innerHTML = 'Loading...';
+        const res = await fetch('/api/whale/' + addr);
+        const data = await res.json();
+        document.getElementById('d-history').innerHTML = data.history.map(b => `
+            <div style="background:rgba(255,255,255,0.03); padding:10px; border-radius:4px; border:1px solid rgba(255,255,255,0.05);">
+                <div style="color:#e6edf3; margin-bottom:6px;">${b.market_question}</div>
+                <div style="display:flex; justify-content:space-between; font-family:monospace; font-size:12px;">
+                    <span style="color:${b.position.includes('Yes')?'#3fb950':'#f85149'}">${b.position}</span>
+                    <span class="money">$${b.size_usd.toLocaleString()}</span>
+                </div>
+            </div>`).join('');
+    }
+    function closeDossier() { document.getElementById('dossier').classList.remove('open'); }
+
+    setInterval(loadInsider, 240000);
+    loadInsider();
+</script>
+{% endblock %}

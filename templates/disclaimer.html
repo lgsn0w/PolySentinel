@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% block title %}Aviso Legal e Privacidade / Legal & Privacy{% endblock %}
+
+{% block head %}
+<style>
+    .doc-panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 30px; margin-bottom: 24px; }
+    .doc-title { font-size: 18px; color: #58a6ff; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .highlight-box { background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.4); padding: 20px; border-radius: 6px; color: #e6edf3; }
+    .privacy-box { background: rgba(56, 139, 253, 0.1); border: 1px solid rgba(56, 139, 253, 0.4); padding: 20px; border-radius: 6px; color: #e6edf3; }
+    p { font-size: 14px; color: #8b949e; line-height: 1.7; margin-bottom: 20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header>
+    <h1 style="margin:0; font-size: 24px;">Aviso Legal e Privacidade / Legal & Privacy</h1>
+    <div style="font-size:12px; color:#8b949e;">Aviso Legal / Disclaimer</div>
+</header>
+
+<div class="doc-panel" style="border-color: #f85149;">
+    <div class="doc-title" style="color: #f85149;">
+        <i class="fas fa-exclamation-triangle"></i> Aviso Legal Importante / Important Disclaimer
+    </div>
+
+    <div class="highlight-box">
+        <p style="margin-top:0;"><strong>PROJETO DE PORTFÓLIO:</strong></p>
+        <p>
+            Este site faz parte de um projeto pessoal e experimental, criado principalmente para aprofundar meu entendimento prático em Flask/Python,
+            Engenharia de Dados e sistemas web em tempo real.<br><br>
+            Por se tratar de um ambiente de estudo, o conteúdo pode conter imprecisões e <strong>não deve ser interpretado como orientação financeira</strong>.
+            Todas as informações aqui apresentadas têm caráter exclusivamente educacional e demonstrativo, não devendo ser utilizadas como base para
+            decisões financeiras ou de investimento.
+        </p>
+
+        <hr style="border: 0; border-top: 1px solid rgba(248, 81, 73, 0.3); margin: 20px 0;">
+
+        <p style="margin-top:0;"><strong>PORTFOLIO PROJECT:</strong></p>
+        <p style="margin-bottom:0;">
+            This website is a personal, hands-on engineering project built to explore real-world challenges in Python, Data Engineering,
+            and real-time web systems.<br><br>
+            As an experimental project, it may contain inaccuracies and <strong>should not be treated as financial advice</strong>.
+            All information is provided strictly for educational and technical demonstration purposes and must not be used to guide
+            financial or investment decisions.
+        </p>
+    </div>
+</div>
+
+<div class="doc-panel" style="border-color: #58a6ff;">
+    <div class="doc-title" style="color: #58a6ff;">
+        <i class="fas fa-user-shield"></i> Privacidade e Remoção de Dados / Privacy & Data Removal
+    </div>
+
+    <div class="privacy-box">
+        <p style="margin-top:0;"><strong>REMOÇÃO DE DADOS:</strong></p>
+        <p>
+            Todos os dados exibidos neste painel são públicos e obtidos a partir de APIs abertas (blockchain/Polymarket).
+            Ainda assim, levo privacidade a sério. Caso você identifique sua carteira ou alguma transação listada aqui
+            e prefira que ela seja <strong>ocultada deste painel de demonstração</strong>, basta entrar em contato.
+            A remoção dos registros do banco de dados local será feita prontamente.<br><br>
+            <strong>Email de contato:</strong> lucasnevesgm@outlook.com
+        </p>
+
+        <hr style="border: 0; border-top: 1px solid rgba(88, 166, 255, 0.3); margin: 20px 0;">
+
+        <p style="margin-top:0;"><strong>DATA OPT-OUT:</strong></p>
+        <p style="margin-bottom:15px;">
+            All data shown on this dashboard comes from public sources via open APIs (blockchain/Polymarket).
+            If you recognize a wallet or transaction associated with you and would rather not have it displayed
+            on this demo, feel free to reach out. I will remove the corresponding records from my local database
+            without delay.<br><br>
+            <strong>Contact email:</strong> lucasnevesgm@outlook.com
+        </p>
+
+        <a href="mailto:lucasnevesgm@outlook.com" target="_blank" style="display:inline-block; background:#1f6feb; color:white; text-decoration:none; padding:8px 16px; border-radius:6px; font-size:13px; font-weight:600;">
+            <i class="fas fa-envelope"></i> Solicitar Remoção / Request Removal
+        </a>
+    </div>
+</div>
+{% endblock %}

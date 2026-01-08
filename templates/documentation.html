@@ -1,0 +1,109 @@
+{% extends "layout.html" %}
+{% block title %}System Architecture{% endblock %}
+
+{% block head %}
+<style>
+    .doc-panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 30px; margin-bottom: 24px; }
+    .doc-title { font-size: 18px; color: #58a6ff; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .doc-section-header { font-size: 16px; color: #e6edf3; margin-bottom: 10px; font-weight: 700; display:flex; align-items:center; gap:8px;}
+    .doc-text { font-size: 14px; color: #8b949e; line-height: 1.7; margin-bottom: 25px; }
+    .tech-tag { display: inline-block; background: rgba(56, 139, 253, 0.1); padding: 5px 12px; border-radius: 20px; font-size: 12px; color: #58a6ff; margin-right: 8px; border: 1px solid rgba(56, 139, 253, 0.3); margin-bottom: 8px; font-family: monospace; }
+    hr.sep { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header>
+    <h1 style="margin:0; font-size: 24px;">Technical Documentation</h1>
+    <div style="font-size:12px; color:#8b949e;">Algorithms & System Architecture</div>
+</header>
+
+<div class="doc-panel">
+    <div class="doc-title"><i class="fas fa-bullseye"></i> Mission & Project Scope</div>
+
+    <div class="doc-section-header">Objective</div>
+    <p class="doc-text">
+        PolySentinel was built to try and detect institutional capital ("Whales") or insider info entering political prediction markets before the news cycle catches up. By monitoring Polymarket in real-time, the system identifies information that could suggest insider knowledge or high-conviction bets.
+    </p>
+
+    <div class="doc-section-header">Objetivo</div>
+    <p class="doc-text">
+        O PolySentinel foi criado com o intuito de tentar detectar movimentos financeiros institucionais ("Whales") ou informações privilegiadas (Insider Info) em mercados de previsão política antes que eles se tornem amplamente noticiados. Monitorando o Polymarket em tempo real, a ferramenta tenta identificar padrões que possam indicar informações privilegiadas ou apostas de alta confiança.
+    </p>
+
+    <hr class="sep">
+
+    <div class="doc-section-header">The Project</div>
+    <p class="doc-text">
+        The idea for PolySentinel came from observing first, that large financial movements often precede news breaking in traditional media. By analyzing political betting in Polymarket, the tool provides insights into potential insider trading patterns.
+    </p>
+
+    <div class="doc-section-header">O Projeto</div>
+    <p class="doc-text" style="margin-bottom:0;">
+        A ideia para o PolySentinel surgiu a partir da observação primaria de que grandes movimentações financeiras podem preceder a divulgação de informações nos meios tradicionais de comunicação. Através da análise de apostas políticas no Polymarket, a ferramenta oferece insights sobre potenciais padrões de insider trading.
+    </p>
+
+    <div style="margin-top: 25px;">
+        <span class="tech-tag">Real-Time Intelligence / Inteligência em Tempo Real</span>
+        <span class="tech-tag">Financial Forensics / Forense Financeira</span>
+        <span class="tech-tag">Whale Tracking / Rastreamento de Baleias</span>
+    </div>
+</div>
+
+<div class="doc-panel">
+    <div class="doc-title"><i class="fas fa-network-wired"></i> Architecture / Arquitetura</div>
+
+    <div class="doc-section-header">Dual-Pipeline System / Sistema de Duplo Pipeline</div>
+
+    <p class="doc-text">
+        The backend operates with two distinct strategies to optimize both visual throughput and data accuracy:<br>
+        <strong style="color:#e6edf3;">Stream A (General bets Mode):</strong> Ingests high-frequency small bets (>$20) to visualize market velocity, sentiment flow and general retail traders response.<br>
+        <strong style="color:#e6edf3;">Stream B (Insider Mode):</strong> A "Ladder Logic" engine that buckets trades over a 10-minute window. If a wallet accumulates >$3,000, it triggers a forensic scan.
+    </p>
+
+    <p class="doc-text" style="margin-bottom:0;">
+        O backend do PolySentinel opera com duas estratégias distintas para otimizar tanto o processamento visual quanto a precisão dos dados:<br>
+        <strong style="color:#e6edf3;">Stream A (Modo Bets geral):</strong> Processa apostas pequenas de alta frequência (maiores que $20) para visualizar a velocidade do mercado e fluxo de sentimentos.<br>
+        <strong style="color:#e6edf3;">Stream B (Modo Insider):</strong> Um motor lógico baseado em "Ladder Logic" que organiza transações dentro de janelas de 10 minutos. Quando uma carteira acumula mais de $3.000, é ativado um scanning forense.
+    </p>
+
+    <div style="margin-top: 25px;">
+        <span class="tech-tag">Dual-Pipeline / Pipeline Duplo</span>
+        <span class="tech-tag">Ladder Logic / Lógica de Escada</span>
+        <span class="tech-tag">Async Streams / Fluxos Assíncronos</span>
+    </div>
+</div>
+
+<div class="doc-panel">
+    <div class="doc-title"><i class="fas fa-cogs"></i> Key Engineering Challenge / Desafios Principais</div>
+
+    <p class="doc-text">
+        <strong>Handling API rate limits while maintaining <200ms latency.</strong> This challenge was overcome by implementing an in-memory bucket system that pre-aggregates trades before they are written to disk, selection of relevant data, data concurrency preventing read/write locks on the SQLite database during high-volume events.
+    </p>
+
+    <p class="doc-text" style="margin-bottom:0;">
+        <strong>Gerenciar os limites de taxa da API mantendo latência abaixo de 200ms.</strong> Este desafio foi superado com a implementação de um sistema de "buckets" em memória, que pré-agrega as transações antes de gravá-las no disco, escolha de dados pertinentes, concorrencia de dados evitar bloqueios de leitura/escrita no banco SQLite durante eventos de alto volume.
+    </p>
+
+    <div style="margin-top: 25px;">
+        <span class="tech-tag">Edge Computing / Computação na Borda</span>
+        <span class="tech-tag">Batch Processing / Processamento em Lote</span>
+        <span class="tech-tag">High Concurrency / Alta Concorrência</span>
+    </div>
+</div>
+
+<div class="doc-panel">
+    <div class="doc-title"><i class="fas fa-code"></i> Tech Stack / Tecnologia</div>
+
+    <div>
+        <span class="tech-tag">Python 3.10</span>
+        <span class="tech-tag">Flask (Server)</span>
+        <span class="tech-tag">SQLite (Dual DB)</span>
+        <span class="tech-tag">Async IO</span>
+        <span class="tech-tag">Polymarket Gamma API</span>
+        <span class="tech-tag">PolygonScan API</span>
+        <span class="tech-tag">HTML5 / JS (Vanilla)</span>
+        <span class="tech-tag">ngrok</span>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>PolySentinel</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+/* GLOBAL DARK THEME */
+:root { --bg: #0d1117; --panel: #161b22; --text: #c9d1d9; --accent: #58a6ff; --border: #30363d; --good: #3fb950; --bad: #f85149; --sidebar-w: 240px; }
+* { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+/* SIDEBAR */
+.sidebar { width: var(--sidebar-w); background: var(--panel); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; z-index: 10; }
+.brand { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
+.brand span { color: var(--accent); }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text); text-decoration: none; border-radius: 6px; margin-bottom: 8px; transition: 0.2s; font-size: 14px; }
+.nav-item:hover, .nav-item.active { background: rgba(88, 166, 255, 0.1); color: var(--accent); }
+.nav-item i { width: 20px; text-align: center; }
+
+/* CONTENT AREA */
+.content { flex: 1; padding: 30px; overflow-y: auto; position: relative; padding-bottom: 60px; /* Space for ticker */ }
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+
+/* SHARED UTILS */
+.money { color: var(--good); font-family: monospace; font-weight: 600; }
+.question { color: #e6edf3; text-decoration: none; font-weight: 500; transition: 0.2s; }
+.question:hover { color: var(--accent); text-decoration: underline; }
+
+/* BADGES */
+.badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.badge-cex { background: #1f6feb; color: #fff; }
+.badge-anon { background: #a371f7; color: #fff; }
+.badge-unk { background: #333; color: #999; }
+.badge-fresh { background: #f85149; color: #fff; animation: pulse 2s infinite; }
+.badge-yes { background: rgba(63, 185, 80, 0.2); color: var(--good); }
+.badge-no { background: rgba(248, 81, 73, 0.2); color: var(--bad); }
+
+@keyframes pulse { 0% { opacity:0.7; } 50% { opacity:1; } 100% { opacity:0.7; } }
+
+/* MOBILE RESPONSIVE TWEAKS */
+@media (max-width: 768px) {
+    .sidebar { display: none; }
+    .content { padding: 15px; margin: 0; padding-bottom: 50px; }
+}
+</style>
+<script>
+    function getSourceConfig(rawSource) {
+        if (!rawSource) return { label: 'UNK', class: 'badge-unk' };
+        const s = rawSource.toString().toLowerCase();
+        if (s.includes('tornado') || s.includes('private')) return { label: 'ANON', class: 'badge-anon' };
+        if (s.includes('coinbase') || s.includes('binance') || s.includes('kraken')) return { label: 'CEX', class: 'badge-cex' };
+        return { label: 'UNK', class: 'badge-unk' };
+    }
+</script>
+{% block head %}{% endblock %}
+</head>
+<body>
+    <div class="sidebar">
+        <div class="brand"><img src="{{ url_for('static', filename='logo2.png') }}" alt="Logo" style="height: 40px; width: auto;">
+            <span style="font-size: 18px; font-weight: 700; color: #fff; margin-left: 10px;">
+                Poly<span style="color: #58a6ff;">Sentinel</span>
+            </span>
+        </div>
+
+        <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a href="/insider" class="nav-item {% if request.path == '/insider' %}active{% endif %}"><i class="fas fa-user-secret"></i> Insider Zone</a>
+
+        <a href="/dev" class="nav-item {% if request.path == '/dev' %}active{% endif %}"><i class="fas fa-id-card"></i> Desenvolvedor / Developer</a>
+
+        <a href="/about" class="nav-item {% if request.path == '/about' %}active{% endif %}"><i class="fas fa-code"></i> Sobre o Projeto / About Project</a>
+
+        <a href="/disclaimer" class="nav-item {% if request.path == '/disclaimer' %}active{% endif %}"><i class="fas fa-file-contract"></i> Aviso Legal / Disclaimer</a>
+
+        <div style="margin-top:auto; font-size:11px; color:#8b949e; padding-left:10px;">
+            v1.0<br>
+            Latency: <span id="sys-latency" style="color:#3fb950">Local</span>
+        </div>
+    </div>
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
