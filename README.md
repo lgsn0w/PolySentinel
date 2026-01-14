@@ -42,7 +42,7 @@
 
 ### Rastreamento de Insiders
 *Detecção de carteiras institucionais e análise de origem de fundos.*
-![Insider Info](static/insider.png)
+![Insider Info](static/Insider.png)
 
 ---
 
