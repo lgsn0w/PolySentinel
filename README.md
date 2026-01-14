@@ -38,11 +38,11 @@
 
 ### Dashboard & Métricas de Mercado
 *Visão geral da velocidade de apostas e sentimento em tempo real.*
-![Dashboard](assets/image_aa5448.png)
+![Dashboard](static/dashboard.png)
 
 ### Rastreamento de Insiders
 *Detecção de carteiras institucionais e análise de origem de fundos.*
-![Insider Info](assets/image_aa5463.png)
+![Insider Info](static/insider.png)
 
 ---
 
