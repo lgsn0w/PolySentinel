@@ -77,8 +77,8 @@
     <div class="header-right" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
         <div style="font-size:12px; color:#8b949e; display:flex; align-items:center; gap:10px;">
             <span id="global-timer">Syncing...</span>
-            <div style="width:8px; height:8px; background:#3fb950; border-radius:50%; box-shadow:0 0 8px #3fb950;"></div>
-            <span style="color:#3fb950; font-weight:bold; font-size:12px;" id="live-status">LIVE</span>
+            <div id="status-dot" style="width:8px; height:8px; background:#8b949e; border-radius:50%; box-shadow:0 0 8px #8b949e;"></div>
+            <span style="color:#8b949e; font-weight:bold; font-size:12px;" id="live-status">CONNECTING</span>
         </div>
     </div>
 </header>
@@ -114,7 +114,7 @@
         <div class="panel">
             <h2 class="panel-header" style="justify-content: space-between;">
                 <span><i class="fas fa-wave-square"></i> Market Velocity</span>
-                <span style="font-size:10px; color:#58a6ff;">BRT Timezone</span>
+                <span style="font-size:10px; color:#58a6ff;">24h · 30min · BRT</span>
             </h2>
             <div style="flex: 1; width: 100%; min-height: 0;">
                 <canvas id="velocityChart"></canvas>
@@ -155,10 +155,15 @@
 
 <script>
     const STORAGE_KEY = 'poly_dashboard_data';
-    const UPDATE_INTERVAL = 240000;
+    const UPDATE_INTERVAL = 15000;
+    const REQUEST_TIMEOUT = 15000;
     let volumeChartInstance = null;
     let velocityChartInstance = null;
     let lastTopWhale = null;
+    let homeRequest = null;
+    let pollTimer = null;
+    let freshnessTimer = null;
+    let hasRenderedDashboard = false;
 
     document.getElementById('global-search').addEventListener('keyup', function(e) {
         const term = e.target.value.toLowerCase();
@@ -174,62 +179,180 @@
         }
     }
 
-    async function fetchHome() {
+    function finiteNumber(value, fallback = 0) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : fallback;
+    }
+
+    function safeExternalUrl(value, allowedHosts = []) {
         try {
-            const res = await fetch('/api/stats');
+            const url = new URL(String(value));
+            if (url.protocol !== 'https:') return null;
+            if (allowedHosts.length && !allowedHosts.some(host => url.hostname === host || url.hostname.endsWith('.' + host))) return null;
+            return url.href;
+        } catch (_) { return null; }
+    }
+
+    function isWalletAddress(value) {
+        return /^0x[0-9a-fA-F]{40}$/.test(String(value));
+    }
+
+    function makeLink(text, href, className, styleText) {
+        const link = document.createElement(href ? 'a' : 'span');
+        link.textContent = String(text || 'Untitled market');
+        link.className = className || '';
+        if (styleText) link.style.cssText = styleText;
+        if (href) {
+            link.href = href;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+        }
+        return link;
+    }
+
+    function showRowsMessage(target, message, columns = 2) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = columns;
+        cell.style.cssText = 'padding:24px; text-align:center; color:#8b949e;';
+        cell.textContent = message;
+        row.appendChild(cell);
+        target.replaceChildren(row);
+    }
+
+    function schedulePoll(delay = UPDATE_INTERVAL) {
+        clearTimeout(pollTimer);
+        pollTimer = setTimeout(fetchHome, Math.max(0, delay));
+    }
+
+    async function fetchHome() {
+        if (homeRequest) return;
+        const controller = new AbortController();
+        homeRequest = controller;
+        const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+        try {
+            const res = await fetch('/api/stats', { signal: controller.signal });
+            if (!res.ok) throw new Error(`Dashboard request failed (${res.status})`);
             const data = await res.json();
-            data.timestamp = Date.now();
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            if (data.error) throw new Error(data.error);
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { console.warn('Dashboard cache unavailable', e); }
             renderDashboard(data, true);
         } catch (e) {
             console.error(e);
-            document.getElementById('live-status').innerText = "Syncing Failed";
+            setFreshness(null, 'Syncing Failed');
+            if (!hasRenderedDashboard) {
+                showRowsMessage(document.getElementById('largest-whales'), 'Unable to load dashboard data. Retrying automatically.');
+                showRowsMessage(document.getElementById('conviction-plays'), 'Unable to load dashboard data. Retrying automatically.');
+                document.getElementById('ticker-content').textContent = 'Dashboard data is temporarily unavailable.';
+            }
+        } finally {
+            clearTimeout(timeout);
+            homeRequest = null;
+            schedulePoll();
+        }
+    }
+
+    function setFreshness(scanner, fallbackStatus) {
+        clearTimeout(freshnessTimer);
+        freshnessTimer = null;
+        const status = document.getElementById('live-status');
+        const dot = document.getElementById('status-dot');
+        const lastSuccess = finiteNumber(scanner && scanner.last_success, 0);
+        const ageSeconds = Date.now() / 1000 - lastSuccess;
+        const isLive = scanner && scanner.status === 'ok' && lastSuccess > 0 && ageSeconds >= 0 && ageSeconds < 90;
+        status.textContent = isLive ? 'LIVE' : (fallbackStatus || 'STALE');
+        status.style.color = isLive ? '#3fb950' : '#f85149';
+        dot.style.background = isLive ? '#3fb950' : '#f85149';
+        dot.style.boxShadow = `0 0 8px ${isLive ? '#3fb950' : '#f85149'}`;
+        if (isLive) {
+            const expiresIn = Math.max(1, Math.ceil((90 - ageSeconds) * 1000));
+            freshnessTimer = setTimeout(() => setFreshness(scanner), expiresIn);
         }
     }
 
     function renderDashboard(data, isFreshUpdate = false) {
-        const dateObj = new Date(data.timestamp);
-        document.getElementById('global-timer').innerText = "Last Update: " + dateObj.toLocaleTimeString();
+        const timestamp = finiteNumber(data.timestamp, 0);
+        const dateObj = new Date(timestamp);
+        document.getElementById('global-timer').innerText = timestamp && !Number.isNaN(dateObj.getTime())
+            ? "Last Update: " + dateObj.toLocaleTimeString()
+            : 'Update time unavailable';
         if (data.latency && document.getElementById('sys-latency')) {
             document.getElementById('sys-latency').innerText = data.latency + "ms";
         }
 
-        // WHALES
-        const currentTopWhale = data.largest_whales.length > 0 ? data.largest_whales[0].whale_address : null;
-        document.getElementById('largest-whales').innerHTML = data.largest_whales.map(w => {
+        const whales = Array.isArray(data.largest_whales) ? data.largest_whales : [];
+        const whaleBody = document.getElementById('largest-whales');
+        const currentTopWhale = whales.length > 0 ? whales[0].whale_address : null;
+        const whaleRows = whales.map(w => {
             const src = getSourceConfig(w.funding_source);
-            const badgeHtml = src.label === 'UNK' ? '' : `<span class="badge ${src.class}">${src.label}</span>`;
+            const row = document.createElement('tr');
+            const marketCell = document.createElement('td');
+            marketCell.appendChild(makeLink(w.market_question, safeExternalUrl(w.bet_link, ['polymarket.com']), 'question', 'font-size:15px;'));
+            const metricCell = document.createElement('td');
+            metricCell.className = 'metric';
+            const money = document.createElement('span');
+            money.className = 'money';
+            money.textContent = '$' + finiteNumber(w.total_size).toLocaleString();
+            metricCell.appendChild(money);
+            if (src.label !== 'UNK') {
+                const badge = document.createElement('span');
+                badge.className = `badge ${src.class}`;
+                badge.textContent = src.label;
+                metricCell.append(' ', badge);
+            }
+            if (isWalletAddress(w.whale_address)) {
+                const scan = makeLink('', `https://polygonscan.com/address/${w.whale_address}`, 'tx-link');
+                scan.title = 'View Wallet on PolygonScan';
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-external-link-alt';
+                scan.appendChild(icon);
+                metricCell.appendChild(scan);
+            }
+            row.append(marketCell, metricCell);
+            return row;
+        });
+        whaleBody.replaceChildren(...whaleRows);
+        if (!whaleRows.length) showRowsMessage(whaleBody, 'No whale activity available.');
 
-            return `<tr>
-                <td>
-                    <a href="${w.bet_link}" target="_blank" class="question" style="font-size:15px;">${w.market_question}</a>
-                </td>
-                <td class="metric">
-                    <span class="money">$${w.total_size.toLocaleString()}</span> ${badgeHtml}
-                    <a href="https://polygonscan.com/address/${w.whale_address}" target="_blank" title="View Wallet on PolygonScan" class="tx-link"><i class="fas fa-external-link-alt"></i></a>
-                </td>
-            </tr>`;
-        }).join('');
+        const convictionBody = document.getElementById('conviction-plays');
+        const convictionRows = (Array.isArray(data.conviction_plays) ? data.conviction_plays : []).map(m => {
+            const row = document.createElement('tr');
+            const marketCell = document.createElement('td');
+            marketCell.style.verticalAlign = 'middle';
+            marketCell.appendChild(makeLink(m.market_question, safeExternalUrl(m.link, ['polymarket.com']), 'question', 'font-size:14px;'));
+            const metricCell = document.createElement('td');
+            metricCell.className = 'metric';
+            metricCell.style.verticalAlign = 'middle';
+            const value = document.createElement('span');
+            value.style.cssText = 'color:#f1e05a; font-weight:700;';
+            value.textContent = '$' + Math.round(finiteNumber(m.avg_size)).toLocaleString();
+            metricCell.appendChild(value);
+            row.append(marketCell, metricCell);
+            return row;
+        });
+        convictionBody.replaceChildren(...convictionRows);
+        if (!convictionRows.length) showRowsMessage(convictionBody, 'No high-conviction activity available.');
 
-        // CONVICTION
-        document.getElementById('conviction-plays').innerHTML = data.conviction_plays.map(m =>
-            `<tr>
-                <td style="vertical-align:middle;">
-                    <a href="${m.link || '#'}" target="_blank" class="question" style="font-size:14px;">${m.market_question}</a>
-                </td>
-                <td class="metric" style="vertical-align:middle;">
-                    <span style="color:#f1e05a; font-weight:700;">$${Math.round(m.avg_size).toLocaleString()}</span>
-                </td>
-            </tr>`
-        ).join('');
+        const ticker = document.getElementById('ticker-content');
+        const tickerItems = (Array.isArray(data.feed) ? data.feed : []).map(f => {
+            const item = document.createElement('div');
+            item.className = 'ticker-item';
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-caret-right';
+            icon.style.color = '#30363d';
+            const position = document.createElement('span');
+            const positionText = String(f.position || 'Unknown');
+            position.style.color = positionText.includes('Yes') ? '#3fb950' : '#f85149';
+            position.textContent = `[${positionText}]`;
+            const money = document.createElement('span');
+            money.className = 'money';
+            money.textContent = '$' + finiteNumber(f.size_usd).toLocaleString();
+            item.append(icon, ' ', String(f.market_question || 'Untitled market'), ' ', position, ' ', money);
+            return item;
+        });
+        ticker.replaceChildren(...tickerItems);
+        if (!tickerItems.length) ticker.textContent = 'No recent activity.';
 
-        // TICKER
-        document.getElementById('ticker-content').innerHTML = data.feed.map(f => {
-            const posColor = f.position.includes('Yes') ? '#3fb950' : '#f85149';
-            return `<div class="ticker-item"><i class="fas fa-caret-right" style="color:#30363d"></i> ${f.market_question} <span style="color:${posColor}">[${f.position}]</span> <span class="money">$${f.size_usd.toLocaleString()}</span></div>`;
-        }).join('');
-
-        // SENTIMENT & CHARTS
         if (data.sentiment) {
             const total = data.sentiment.bulls + data.sentiment.bears;
             const bullPct = total > 0 ? Math.round((data.sentiment.bulls / total) * 100) : 50;
@@ -239,27 +362,28 @@
             document.getElementById('txt-bear').innerText = bearPct + "%";
             document.getElementById('stat-avg-size').innerText = "$" + Math.round(data.sentiment.avg_size).toLocaleString();
         }
-        renderChart(data.volume_chart);
-        renderVelocityChart(data.velocity_chart);
+        renderChart(data.volume_chart || {});
+        renderVelocityChart(data.velocity_chart, data.velocity_timestamps);
 
         if (isFreshUpdate && lastTopWhale && currentTopWhale && currentTopWhale !== lastTopWhale) {
             showToast("New Alpha Whale Detected!", "fa-binoculars");
         }
         lastTopWhale = currentTopWhale;
-        document.getElementById('live-status').innerText = "LIVE";
+        setFreshness(data.scanner);
 
         const searchTerm = document.getElementById('global-search').value.toLowerCase();
         if(searchTerm) {
             filterTable('largest-whales', searchTerm);
             filterTable('conviction-plays', searchTerm);
         }
+        hasRenderedDashboard = true;
     }
 
     function renderChart(volData) {
         const ctx = document.getElementById('volumeChart').getContext('2d');
-        let values = [volData.whale, volData.retail];
+        let values = [finiteNumber(volData.whale), finiteNumber(volData.retail)];
         let bgColors = ['#58a6ff', '#238636'];
-        let labels = ['Verified Insiders', 'Retail / Unverified'];
+        let labels = ['Flagged Activity', 'Other Activity'];
         if (values[0] === 0 && values[1] === 0) { values = [1]; bgColors = ['#30363d']; labels = ['No Data Yet']; }
 
         const config = {
@@ -267,21 +391,30 @@
             data: { labels: labels, datasets: [{ data: values, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#8b949e', font: {size: 13}, boxWidth: 10, padding: 15 } } } }
         };
-        if (volumeChartInstance) { volumeChartInstance.data.datasets[0].data = values; volumeChartInstance.update(); }
+        if (volumeChartInstance) {
+            volumeChartInstance.data.labels = labels;
+            volumeChartInstance.data.datasets[0].data = values;
+            volumeChartInstance.data.datasets[0].backgroundColor = bgColors;
+            volumeChartInstance.update();
+        }
         else { volumeChartInstance = new Chart(ctx, config); }
     }
 
-    function renderVelocityChart(dataPoints) {
+    function renderVelocityChart(dataPoints, timestamps) {
         const ctx = document.getElementById('velocityChart').getContext('2d');
-        const now = new Date();
-        const labels = Array.from({length: 60}, (_, i) => {
-            const d = new Date(now.getTime() - (59 - i) * 60000);
+        const values = Array.isArray(dataPoints) ? dataPoints.slice(-48).map(value => finiteNumber(value)) : [];
+        while (values.length < 48) values.unshift(0);
+        const rawTimestamps = Array.isArray(timestamps) ? timestamps.slice(-48) : [];
+        const nowSeconds = Date.now() / 1000;
+        const chartTimestamps = Array.from({ length: 48 }, (_, index) => nowSeconds - (47 - index) * 1800);
+        const timestampOffset = 48 - rawTimestamps.length;
+        rawTimestamps.forEach((timestamp, index) => {
+            chartTimestamps[timestampOffset + index] = finiteNumber(timestamp, chartTimestamps[timestampOffset + index]);
+        });
+        const labels = chartTimestamps.map(timestamp => {
+            const d = new Date(finiteNumber(timestamp) * 1000);
             return d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
         });
-
-        if (!dataPoints) dataPoints = [];
-        while (dataPoints.length < 60) { dataPoints.unshift(0); }
-        if (dataPoints.length > 60) { dataPoints = dataPoints.slice(dataPoints.length - 60); }
 
         const config = {
             type: 'line',
@@ -289,7 +422,7 @@
                 labels: labels,
                 datasets: [{
                     label: 'Volume (USD)',
-                    data: dataPoints,
+                    data: values,
                     borderColor: '#3fb950',
                     backgroundColor: (ctx) => {
                         const bg = ctx.chart.ctx.createLinearGradient(0, 0, 0, 200);
@@ -309,7 +442,7 @@
                 }
             }
         };
-        if (velocityChartInstance) { velocityChartInstance.data.labels = labels; velocityChartInstance.data.datasets[0].data = dataPoints; velocityChartInstance.update(); }
+        if (velocityChartInstance) { velocityChartInstance.data.labels = labels; velocityChartInstance.data.datasets[0].data = values; velocityChartInstance.update(); }
         else { velocityChartInstance = new Chart(ctx, config); }
     }
 
@@ -317,21 +450,36 @@
         const container = document.getElementById('toast-area');
         const el = document.createElement('div');
         el.className = 'toast';
-        el.innerHTML = `<i class="fas ${icon}"></i> <span>${msg}</span>`;
+        const iconEl = document.createElement('i');
+        iconEl.className = `fas ${icon}`;
+        const textEl = document.createElement('span');
+        textEl.textContent = String(msg);
+        el.append(iconEl, textEl);
         container.appendChild(el);
         requestAnimationFrame(() => el.classList.add('show'));
         setTimeout(() => el.classList.remove('show'), 5000);
     }
 
     function init() {
-        const cached = localStorage.getItem(STORAGE_KEY);
+        let cached = null;
+        try { cached = localStorage.getItem(STORAGE_KEY); } catch (e) { console.warn('Dashboard cache unavailable', e); }
         const now = Date.now();
         let shouldFetch = true;
         if (cached) {
-            const data = JSON.parse(cached);
-            if (now - data.timestamp < UPDATE_INTERVAL) { renderDashboard(data, false); shouldFetch = false; setTimeout(() => { fetchHome(); setInterval(fetchHome, UPDATE_INTERVAL); }, UPDATE_INTERVAL - (now - data.timestamp)); }
+            try {
+                const data = JSON.parse(cached);
+                const age = now - finiteNumber(data.timestamp, 0);
+                if (age >= 0 && age < UPDATE_INTERVAL) {
+                    renderDashboard(data, false);
+                    shouldFetch = false;
+                    schedulePoll(UPDATE_INTERVAL - age);
+                }
+            } catch (e) {
+                console.warn('Ignoring malformed dashboard cache', e);
+                try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+            }
         }
-        if (shouldFetch) { fetchHome(); setInterval(fetchHome, UPDATE_INTERVAL); }
+        if (shouldFetch) fetchHome();
     }
     init();
 </script>

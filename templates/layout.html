@@ -2,15 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>PolySentinel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{% block title %}PolySentinel{% endblock %}</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <style>
-/* GLOBAL DARK THEME */
 :root { --bg: #0d1117; --panel: #161b22; --text: #c9d1d9; --accent: #58a6ff; --border: #30363d; --good: #3fb950; --bad: #f85149; --sidebar-w: 240px; }
 * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
 body { margin: 0; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
 
-/* SIDEBAR */
 .sidebar { width: var(--sidebar-w); background: var(--panel); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; z-index: 10; }
 .brand { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
 .brand span { color: var(--accent); }
@@ -18,16 +17,13 @@ body { margin: 0; background: var(--bg); color: var(--text); display: flex; heig
 .nav-item:hover, .nav-item.active { background: rgba(88, 166, 255, 0.1); color: var(--accent); }
 .nav-item i { width: 20px; text-align: center; }
 
-/* CONTENT AREA */
-.content { flex: 1; padding: 30px; overflow-y: auto; position: relative; padding-bottom: 60px; /* Space for ticker */ }
+.content { flex: 1; padding: 30px; overflow-y: auto; position: relative; padding-bottom: 60px; }
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 
-/* SHARED UTILS */
 .money { color: var(--good); font-family: monospace; font-weight: 600; }
 .question { color: #e6edf3; text-decoration: none; font-weight: 500; transition: 0.2s; }
 .question:hover { color: var(--accent); text-decoration: underline; }
 
-/* BADGES */
 .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
 .badge-cex { background: #1f6feb; color: #fff; }
 .badge-anon { background: #a371f7; color: #fff; }
@@ -38,7 +34,6 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 
 @keyframes pulse { 0% { opacity:0.7; } 50% { opacity:1; } 100% { opacity:0.7; } }
 
-/* MOBILE RESPONSIVE TWEAKS */
 @media (max-width: 768px) {
     .sidebar { display: none; }
     .content { padding: 15px; margin: 0; padding-bottom: 50px; }
@@ -57,7 +52,7 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 </head>
 <body>
     <div class="sidebar">
-        <div class="brand"><img src="{{ url_for('static', filename='logo2.png') }}" alt="Logo" style="height: 40px; width: auto;">
+        <div class="brand"><i class="fas fa-shield-alt" aria-hidden="true" style="font-size:32px; color:#58a6ff;"></i>
             <span style="font-size: 18px; font-weight: 700; color: #fff; margin-left: 10px;">
                 Poly<span style="color: #58a6ff;">Sentinel</span>
             </span>

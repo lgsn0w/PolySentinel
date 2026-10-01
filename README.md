@@ -1,64 +1,82 @@
-<div align="center">
-  <img src="assets/image_aa5448.png" alt="PolySentinel Dashboard" width="100%">
-  
-  <h1>PolySentinel</h1>
-  
-  <h3>Inteligência em Tempo Real & Forense Financeira para Polymarket</h3>
+# PolySentinel
 
-  <p>
-    <img src="https://img.shields.io/badge/Status-Live-success?style=for-the-badge&logo=statuspage" alt="Status Live">
-    <img src="https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
-    <img src="https://img.shields.io/badge/Flask-Backend-lightgrey?style=for-the-badge&logo=flask" alt="Flask">
-    <img src="https://img.shields.io/badge/SQLite-WAL_Mode-blue?style=for-the-badge&logo=sqlite" alt="SQLite WAL">
-  </p>
-</div>
+PolySentinel monitors political markets on Polymarket and highlights unusual trading activity. Flags are based on observed trade volume; they do not establish insider knowledge, identity, or misconduct.
 
----
-
-## Visão Geral
-
-**PolySentinel** é uma ferramenta de engenharia de dados projetada para monitorar, agregar e analisar fluxos de capital no Polymarket em tempo real. O sistema opera sob a premissa de que movimentos financeiros relevantes frequentemente antecedem a divulgação de notícias nos meios tradicionais.
-
-> "O projeto transforma a curiosidade sobre grandes movimentações em um fluxo contínuo de observação estruturada."
-
----
-
-## Funcionalidades Principais
-
-| Recurso | Descrição |
-| :--- | :--- |
-| ** Dashboard Live** | Visualização de velocidade de mercado, sentimento (Bulls vs Bears) e ticker de apostas ao vivo. |
-| ** Insider Zone** | Rastreamento de "Whales" com alto volume de acumulação e verificação de fontes de financiamento (ex: Binance, Tornado Cash). |
-| ** Dossiês Forenses** | Geração automática de perfis baseados no histórico de transações e idade da carteira. |
-| ** Dual Pipeline** | Arquitetura híbrida para ingestão de alta frequência (Varejo) e análise profunda (Institucional). |
-
----
-
-## Screenshots
-
-### Dashboard & Métricas de Mercado
-*Visão geral da velocidade de apostas e sentimento em tempo real.*
 ![Dashboard](static/dashboard.png)
 
-### Rastreamento de Insiders
-*Detecção de carteiras institucionais e análise de origem de fundos.*
-![Insider Info](static/Insider.png)
+The screenshots show the original interface and may differ from the current version.
 
----
+## Run locally
 
-## Arquitetura do Sistema
+Requires Python 3.10+ and Node.js 20+ for frontend tests.
 
-O backend utiliza um **Sistema de Duplo Pipeline** para garantir latência mínima (<200ms) sem perder dados críticos.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+Copy-Item .env.example .env
+.\.venv\Scripts\python.exe server.py
+```
 
-```mermaid
-graph TD
-  A[Polymarket API] -->|Stream| B(Sentinel Bot)
-  B -->|<$20 - Varejo| C[Pipeline A: Alta Frequência]
-  B -->|>$1k - Whales| D[Pipeline B: Análise Forense]
-  C --> E[(Main DB)]
-  D --> F{Acumulação > $3k?}
-  F -- Sim --> G[(Insider DB + Forensics)]
-  F -- Não --> E
-  E --> H[Flask API]
-  G --> H
-  H --> I[Dashboard Frontend]
+In another terminal:
+
+```powershell
+.\.venv\Scripts\python.exe PolyInsideScanner.py
+```
+
+Open http://127.0.0.1:5000. Both processes must use the same `SENTINEL_DB` path. Relative paths resolve against the repository directory. The web server initializes an empty database independently of the scanner.
+
+Public Polymarket data requires no API key. Optional funding enrichment uses `ETHERSCAN_API_KEY` in `.env`, with the Etherscan V2 API and Polygon chain ID 137. Existing PolygonScan keys are not interchangeable with Etherscan keys. Missing credentials leave funding information unknown. API errors preserve previously fetched information.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `SENTINEL_DB` | `data/sentinel.sqlite3` | Unified SQLite database |
+| `POLL_SECONDS` | `15` | Scanner polling interval |
+| `LOOKBACK_SECONDS` | `600` | History requested for a new database |
+| `ETHERSCAN_API_KEY` | empty | Optional funding lookup |
+
+## Docker
+
+```sh
+docker compose up --build -d
+docker compose logs -f scanner
+```
+
+Compose runs the scanner and Gunicorn web server separately, sharing a named database volume. The dashboard port binds to localhost. To deploy publicly, configure HTTPS and a reverse proxy for the Gunicorn service. The built-in Flask server is for local development.
+
+## Data and detection
+
+The scanner paginates active events, refreshes its political market map hourly, and requests public taker trades worth at least $10. Each qualifying trade is persisted immediately. Unknown conditions are looked up by condition ID in both open and closed markets. Unavailable classifications enter a durable pending queue and are retried in rotating batches, even after falling outside the trade overlap. Known non-political conditions are excluded. Conditions that the API never resolves remain pending and can grow the database; they are not silently deleted. A rolling, inclusive 600-second window flags individual trades worth at least $500 when their combined value reaches $3,000 for the same wallet, market, side, and outcome. Late arrivals re-evaluate affected windows; persisted trades survive restarts.
+
+Trade insertion, detection flags, and progress commit in one transaction. Failed validation, incomplete pagination, and failed writes do not advance progress. Subsequent polls overlap the persisted cursor by 120 seconds. Requests use fixed start/end windows, overlapping offset pages, and split busy time windows to avoid the API offset cap. An unpageable single second or exhausted request budget produces an error rather than silently skipping history.
+
+Trade identity combines transaction hash, wallet, token, market, side, outcome, timestamp, size, and price. The public API does not expose a fill index: genuinely distinct fills with every identity field identical cannot be distinguished and will collapse into one record. Delayed records older than the overlap can require a larger replay window. The source is a public taker-trade feed, not a complete audited ledger or a guarantee of exchange-wide volume.
+
+Wallet enrichment runs separately from ingestion. A reported funding source describes an observed incoming normal transaction among the first ten transactions, not proven ultimate funding provenance. Failed enrichment is retried after an hour.
+
+Dashboard sentiment counts BUY Yes and SELL No as bullish, BUY No and SELL Yes as bearish; other outcomes are excluded from those counts. These are activity classifications, not forecasts. The velocity chart uses 48 half-hour buckets with explicit timestamps. Flagged and other activity are disjoint subsets of the same persisted data. "LIVE" requires a successful scanner poll within 90 seconds and an OK scanner status.
+
+## Existing databases
+
+The original `whale_hunter.db` and `insider_intel.db` are preserved locally but excluded from future commits. The refactored application uses a new database and does not automatically import legacy aggregates. Legacy records lack reliable individual trade identity and can overlap; importing them into the new ledger would risk double counting. Keep these files as historical snapshots. Existing Git history still contains them.
+
+## Verification
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+node --test tests/frontend.test.cjs
+```
+
+Tests cover replay, timestamp ties, distinct fills in one transaction, restarts, delayed trades, window boundaries, isolation between markets and sides, transaction rollback, malformed upstream data, pagination, wallet enrichment, dashboard totals, chart timestamps, API errors, frontend rendering, and startup recovery. They run offline without credentials.
+
+`/healthz` checks web/database availability and reports scanner state separately. A healthy web server does not imply a running scanner. `/api/stats`, `/api/insider_data`, and `/api/whale/<address>` provide dashboard data. Database failures return HTTP 503; malformed wallet addresses return HTTP 400.
+
+## Structure
+
+- `polysentinel/config.py`: environment configuration.
+- `polysentinel/clients.py`: validated public API requests and optional enrichment.
+- `polysentinel/storage.py`: SQLite schema and connection lifecycle.
+- `polysentinel/scanner.py`: normalization, transactional ingestion, polling, enrichment.
+- `polysentinel/detection.py`: volume window flags.
+- `polysentinel/queries.py`: dashboard queries.
+- `polysentinel/web.py`: Flask app factory and routes.
+- `PolyInsideScanner.py` and `server.py`: executable entry points.

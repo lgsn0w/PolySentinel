@@ -1,0 +1,28 @@
+services:
+  scanner:
+    build: .
+    restart: unless-stopped
+    environment:
+      SENTINEL_DB: /data/sentinel.sqlite3
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
+      POLL_SECONDS: ${POLL_SECONDS:-15}
+      LOOKBACK_SECONDS: ${LOOKBACK_SECONDS:-600}
+    volumes:
+      - sentinel-data:/data
+    command: ["python", "PolyInsideScanner.py"]
+  web:
+    build: .
+    restart: unless-stopped
+    environment:
+      SENTINEL_DB: /data/sentinel.sqlite3
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - sentinel-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/healthz').read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+volumes:
+  sentinel-data:
