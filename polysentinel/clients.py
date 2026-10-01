@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 import math
-import time
+from urllib.parse import urlsplit
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -38,16 +38,33 @@ class Client:
             response = self.session.get(url, params=params, timeout=(5, 15))
             response.raise_for_status()
             return response.json()
-        except (requests.RequestException, ValueError):
-            raise UpstreamError("Upstream request failed") from None
+        except requests.HTTPError as error:
+            endpoint = urlsplit(url)
+            status = error.response.status_code if error.response is not None else "unknown"
+            raise UpstreamError(f"{endpoint.hostname}{endpoint.path}: HTTP {status}") from None
+        except (requests.RequestException, ValueError) as error:
+            endpoint = urlsplit(url)
+            raise UpstreamError(f"{endpoint.hostname}{endpoint.path}: {type(error).__name__}") from None
 
     def markets(self):
         markets = {}
-        for offset in range(0, self.settings.max_offset + 1, 100):
-            events = self.get(f"{GAMMA_API}/events", {
-                "active": "true", "closed": "false", "limit": 100, "offset": offset})
-            if not isinstance(events, list):
+        for tag in ("politics", "us-election"):
+            markets.update(self._markets_for_tag(tag))
+        if not any(markets.values()):
+            raise UpstreamError("No political markets found; refusing to discard trades")
+        return markets
+
+    def _markets_for_tag(self, tag):
+        markets = {}
+        cursor, seen = None, set()
+        for _ in range(1000):
+            params = {"closed": "false", "limit": 100, "tag_slug": tag}
+            if cursor:
+                params["after_cursor"] = cursor
+            page = self.get(f"{GAMMA_API}/events/keyset", params)
+            if not isinstance(page, dict) or not isinstance(page.get("events"), list):
                 raise UpstreamError("Invalid events response")
+            events = page["events"]
             for event in events:
                 tags = {str(t.get("slug") or "").lower() for t in event.get("tags", [])}
                 political = bool(tags.intersection({"politics", "us-election"}))
@@ -59,14 +76,48 @@ class Client:
                                     "category": "Politics", "link": f"https://polymarket.com/event/{slug}"}
                         if political or cid not in markets:
                             markets[cid] = metadata if political else None
-            if len(events) < 100:
-                if not any(markets.values()):
-                    raise UpstreamError("No political markets found; refusing to discard trades")
+            cursor = page.get("next_cursor")
+            if cursor is None:
                 return markets
+            if not isinstance(cursor, str) or not cursor or cursor in seen:
+                raise UpstreamError("Invalid or repeated event cursor")
+            seen.add(cursor)
         raise UpstreamError("Market pagination limit reached")
 
     def trades_since(self, since):
-        return self._trade_window(max(1, since), int(time.time()), [0])
+        trades, seen = [], set()
+        params = {"limit": self.settings.page_size, "taker_only": "true",
+                  "filter_type": "CASH", "filter_amount": self.settings.minimum_usd}
+        last_timestamp = None
+        aliases = {"proxyWallet": "proxy_wallet", "conditionId": "condition_id",
+                   "asset": "token_id", "transactionHash": "transaction_hash"}
+        for _ in range(1000):
+            page = self.get(f"{DATA_API}/v2/trades", dict(params))
+            if not isinstance(page, dict) or not isinstance(page.get("data"), list) or not isinstance(page.get("pagination"), dict):
+                raise UpstreamError("Invalid trades response")
+            rows, pagination = page["data"], page["pagination"]
+            try:
+                timestamps = [int(row["timestamp"]) for row in rows]
+            except (KeyError, TypeError, ValueError):
+                raise UpstreamError("Invalid trade timestamp") from None
+            if timestamps != sorted(timestamps, reverse=True) or (timestamps and last_timestamp is not None and timestamps[0] > last_timestamp):
+                raise UpstreamError("Trade feed is not ordered")
+            cursor = pagination.get("next_cursor")
+            if cursor is not None and (not isinstance(cursor, str) or not cursor or cursor in seen):
+                raise UpstreamError("Invalid or repeated trade cursor")
+            if pagination.get("has_more") is not (cursor is not None):
+                raise UpstreamError("Inconsistent trade pagination")
+            for row, ts in zip(rows, timestamps):
+                if ts >= since:
+                    trades.append({**row, **{target: row.get(source) for target, source in aliases.items()}})
+            if cursor is None or (timestamps and timestamps[-1] < since):
+                return trades
+            if not timestamps:
+                raise UpstreamError("Empty trade page with continuation")
+            seen.add(cursor)
+            params["cursor"] = cursor
+            last_timestamp = timestamps[-1]
+        raise UpstreamError("Trade request budget exceeded; cursor was not advanced")
 
     def conditions(self, condition_ids):
         classified = {}
@@ -95,32 +146,6 @@ class Client:
                     elif cid not in classified:
                         classified[cid] = None
         return classified
-
-    def _trade_window(self, since, end, budget):
-        trades = []
-        step = max(1, self.settings.page_size // 2)
-        for offset in range(0, self.settings.max_offset + 1, step):
-            budget[0] += 1
-            if budget[0] > 1000:
-                raise UpstreamError("History request budget exceeded; cursor was not advanced")
-            page = self.get(f"{DATA_API}/trades", {
-                "limit": self.settings.page_size, "offset": offset, "takerOnly": "true",
-                "start": since, "end": end, "filterType": "CASH", "filterAmount": self.settings.minimum_usd})
-            if not isinstance(page, list):
-                raise UpstreamError("Invalid trades response")
-            try:
-                timestamps = [int(t["timestamp"]) for t in page]
-            except (KeyError, TypeError, ValueError):
-                raise UpstreamError("Invalid trade timestamp") from None
-            if any(ts < since or ts > end for ts in timestamps):
-                raise UpstreamError("Upstream did not honor requested history window")
-            trades.extend(page)
-            if len(page) < self.settings.page_size:
-                return trades
-        if since >= end:
-            raise UpstreamError("Too many trades in one second; cursor was not advanced")
-        middle = (since + end) // 2
-        return self._trade_window(since, middle, budget) + self._trade_window(middle + 1, end, budget)
 
     def wallet_intel(self, wallet):
         result = {}

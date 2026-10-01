@@ -28,10 +28,15 @@ def normalize(raw, market):
     side = str(raw["side"]).upper()
     if side not in ("BUY", "SELL"):
         raise ValueError("Invalid side")
-    for field in ("outcome", "conditionId", "transactionHash", "asset"):
+    for field in ("conditionId", "transactionHash", "asset"):
         if raw.get(field) is None or not str(raw[field]).strip():
             raise ValueError("Missing trade identity")
-    outcome, cid = str(raw["outcome"]), str(raw["conditionId"])
+    outcome = raw.get("outcome")
+    unlabeled = outcome == "" and raw.get("outcome_index") == 999
+    if not unlabeled and (outcome is None or not str(outcome).strip()):
+        raise ValueError("Missing trade identity")
+    outcome = f"UNLABELED:{raw['asset']}" if unlabeled else str(outcome)
+    cid = str(raw["conditionId"])
     tx_hash, asset = str(raw["transactionHash"]), str(raw["asset"])
     if not tx_hash or not asset or not cid or not outcome:
         raise ValueError("Missing trade identity")
@@ -39,7 +44,7 @@ def normalize(raw, market):
     return {"trade_id": hashlib.sha256(json.dumps(identity).encode()).hexdigest(),
             "whale_address": wallet, "timestamp": ts, "condition_id": cid,
             "market_question": market["question"], "category": market["category"],
-            "side": side, "outcome": outcome, "position": f"{side} {outcome}",
+            "side": side, "outcome": outcome, "position": f"{side} {'Unlabeled outcome' if unlabeled else outcome}",
             "size_usd": size * price, "bet_link": market["link"], "tx_hash": tx_hash}
 
 

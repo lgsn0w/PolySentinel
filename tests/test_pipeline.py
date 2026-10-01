@@ -49,6 +49,19 @@ def test_same_transaction_distinct_fills(scanner):
     assert scanner.ingest([trade(asset="one"), trade(asset="two"), trade(usd=1600)], 1100) == 3
 
 
+def test_documented_unlabeled_outcome_does_not_block_batch(scanner):
+    scanner.ingest([trade(1), trade(2, outcome="", outcome_index=999)], 1100)
+    assert len(rows(scanner)) == 2
+    assert any(row["position"] == "BUY Unlabeled outcome" for row in rows(scanner))
+    assert scanner.store.state()["last_success"] == 1100
+
+
+def test_unlabeled_tokens_do_not_accumulate_together(scanner):
+    scanner.ingest([trade(1, asset="one", outcome="", outcome_index=999),
+                    trade(2, asset="two", outcome="", outcome_index=999)], 1100)
+    assert not any(row["flagged"] for row in rows(scanner))
+
+
 def test_trade_persisted_before_alert_and_survives_restart(scanner):
     scanner.ingest([trade()], 1100)
     assert rows(scanner)[0]["flagged"] == 0
@@ -91,7 +104,9 @@ def test_write_failure_rolls_back_trade_and_progress(scanner):
 
 @pytest.mark.parametrize("extra", [{"price": float("nan")}, {"size": -1}, {"proxyWallet": "bad"},
                                    {"side": "invalid"}, {"price": 2}, {"asset": None},
-                                   {"outcome": None}, {"transactionHash": None}])
+                                   {"outcome": None}, {"transactionHash": None},
+                                   {"outcome": None, "outcome_index": 999},
+                                   {"outcome": "   ", "outcome_index": 999}])
 def test_invalid_batch_does_not_advance_progress(scanner, extra):
     with pytest.raises(ValueError):
         scanner.ingest([trade(1), trade(2, **extra)], 1100)
