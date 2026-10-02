@@ -1,16 +1,21 @@
 {% extends "layout.html" %}
-{% block title %}Documentation — PolySentinel{% endblock %}
+{% block title %}Documentation · PolySentinel{% endblock %}
 {% block content %}
-<header><h1>Documentation / Documentação</h1></header>
-<section style="max-width:850px; line-height:1.8;">
-    <h2>Observed activity / Atividade observada</h2>
-    <p>PolySentinel records public taker trades worth at least $10 in monitored political markets. Flags highlight trades worth at least $500 when their combined volume reaches $3,000 within ten minutes for the same wallet, market, side, and outcome.</p>
-    <p>O PolySentinel registra operações públicas de pelo menos US$10 em mercados políticos monitorados. Operações de pelo menos US$500 são sinalizadas quando somam US$3.000 em dez minutos para a mesma carteira, mercado, direção e resultado.</p>
-    <h2>Dashboard</h2>
-    <p>The velocity chart shows 48 half-hour buckets. Bullish activity means BUY Yes or SELL No; bearish activity means BUY No or SELL Yes. Other outcomes are excluded from those counts. LIVE means the scanner completed a successful poll within 90 seconds.</p>
-    <p>O gráfico usa 48 intervalos de meia hora. A classificação considera a direção da operação e o resultado negociado. LIVE indica que a última coleta bem-sucedida ocorreu há menos de 90 segundos.</p>
-    <h2>Interpretation / Interpretação</h2>
-    <p>Flags do not verify insider knowledge. Funding labels describe an observed incoming transaction, not proven ultimate provenance. Public feed coverage and API delays can affect the observed data.</p>
-    <p>Sinalizações não comprovam informação privilegiada. As fontes descrevem uma transação de entrada observada, sem comprovar a origem final dos recursos. A cobertura e os atrasos da API podem afetar os dados.</p>
+<div class="doc">
+<header class="page-head">
+    <h1 class="page-title"><span lang="en">Documentation</span><span lang="pt-BR">Documentação</span></h1>
+    <span class="page-sub"><span lang="en">Methodology and interpretation</span><span lang="pt-BR">Metodologia e interpretação</span></span>
+</header>
+<section class="doc-panel">
+    <h3 class="doc-heading"><span lang="en">Observed activity</span><span lang="pt-BR">Atividade observada</span></h3>
+    <p class="doc-text" lang="en">PolySentinel records public taker trades worth at least $10 in monitored political markets. Flags highlight trades worth at least $500 when their combined volume reaches $3,000 within ten minutes for the same wallet, market, side, and outcome.</p>
+    <p class="doc-text" lang="pt-BR">O PolySentinel registra operações públicas de pelo menos US$10 em mercados políticos monitorados. Operações de pelo menos US$500 são sinalizadas quando somam US$3.000 em dez minutos para a mesma carteira, mercado, direção e resultado.</p>
+    <h3 class="doc-heading"><span lang="en">Dashboard</span><span lang="pt-BR">Painel</span></h3>
+    <p class="doc-text" lang="en">The velocity chart shows 48 half-hour buckets. Bullish activity means BUY Yes or SELL No; bearish activity means BUY No or SELL Yes. Other outcomes are excluded from those counts. LIVE means the scanner completed a successful poll within 90 seconds.</p>
+    <p class="doc-text" lang="pt-BR">O gráfico usa 48 intervalos de meia hora. A classificação considera a direção da operação e o resultado negociado. LIVE indica que a última coleta bem-sucedida ocorreu há menos de 90 segundos.</p>
+    <h3 class="doc-heading"><span lang="en">Interpretation</span><span lang="pt-BR">Interpretação</span></h3>
+    <p class="doc-text" lang="en">Flags do not verify insider knowledge. The transfer explorer reports publicly observed wallet transfers; it does not identify wallet owners or determine the source of funds. Public feed coverage and API delays can affect the observed data.</p>
+    <p class="doc-text" lang="pt-BR">Sinalizações não comprovam informação privilegiada. O explorador de transferências informa transferências de carteiras observadas publicamente; ele não identifica os proprietários das carteiras nem determina a origem dos fundos. A cobertura e os atrasos da API podem afetar os dados observados.</p>
 </section>
+</div>
 {% endblock %}

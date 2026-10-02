@@ -3,6 +3,17 @@ venv/
 env/
 
 .env
+.env.*
+!.env.example
+.idea/
+.vscode/
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+*.bak
 
 __pycache__/
 *.pyc

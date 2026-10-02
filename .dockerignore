@@ -1,6 +1,15 @@
 .git
 .venv
 .env
+.env.*
+.idea
+.vscode
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
 data
 *.db
 *.sqlite3

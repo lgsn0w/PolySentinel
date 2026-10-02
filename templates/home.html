@@ -1,162 +1,128 @@
 {% extends "layout.html" %}
-{% block title %}Market Overview{% endblock %}
+{% block title %}Dashboard · PolySentinel{% endblock %}
 
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-
-    .content-wrapper { display: flex; flex-direction: column; height: calc(100vh - 100px); gap: 20px; }
-.main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; min-height: 0; }
-.top-section { flex: 2; min-height: 0; }
-.bottom-section { flex: 1; min-height: 0; }
-
-.panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; overflow: hidden; height: 100%; position: relative; }
-
-.panel-header {
-    margin: 0 0 15px;
-    font-size: 16px;
-    text-transform: uppercase;
-    color: #8b949e;
-    letter-spacing: 0.5px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 700;
-    flex-shrink: 0;
-}
-
-.table-container {
-    flex: 1;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: #30363d #161b22;
-    padding-right: 5px;
-}
-
-.search-wrapper { display: flex; align-items: center; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; width: 100%; max-width: 400px; margin-bottom: 0; }
-.search-wrapper i { color: #8b949e; margin-right: 10px; }
-.search-input { background: transparent; border: none; color: #e6edf3; width: 100%; outline: none; font-size: 13px; font-family: 'Segoe UI', monospace; }
-.search-input::placeholder { color: #484f58; }
-
-.table { width: 100%; border-collapse: collapse; }
-.table td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; vertical-align: middle; }
-.metric { font-family: monospace; text-align: right; color: #58a6ff; white-space: nowrap; }
-
-.tx-link { color: #8b949e; margin-left: 8px; transition: 0.2s; font-size: 11px; }
-.tx-link:hover { color: #58a6ff; }
-
-.sentiment-track { width: 100%; height: 8px; background: #2f2f2f; border-radius: 4px; overflow: hidden; display: flex; margin-top: 10px; margin-bottom: 5px; }
-.sent-bull { background: #3fb950; height: 100%; transition: width 1s; }
-.sent-bear { background: #f85149; height: 100%; flex: 1; transition: width 1s; }
-.sent-labels { display: flex; justify-content: space-between; font-size: 11px; font-family: monospace; color: #e6edf3; }
-.sent-big-num { font-size: 20px; font-weight: 700; color: white; }
-
-.ticker-wrap { position: fixed; bottom: 0; left: var(--sidebar-w); right: 0; height: 36px; background: #0d1117; border-top: 1px solid #30363d; overflow: hidden; white-space: nowrap; z-index: 50; display: flex; align-items: center; }
-.ticker { display: inline-block; padding-left: 100%; animation: ticker 200s linear infinite; }
-.ticker-item { display: inline-block; margin-right: 40px; font-family: monospace; font-size: 12px; color: #8b949e; }
-.ticker-item span { color: #e6edf3; font-weight: 600; }
-@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-
-.toast-container { position: fixed; bottom: 50px; right: 30px; z-index: 2000; }
-.toast { background: #1f6feb; color: white; padding: 12px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); margin-top: 10px; transform: translateX(120%); transition: transform 0.4s; display: flex; align-items: center; gap: 10px; font-size: 13px; }
-.toast.show { transform: translateX(0); }
-@media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } .content-wrapper { height: auto; display: block; } .panel { height: auto; min-height: 300px; } .ticker-wrap { left: 0; } header { flex-direction: column; align-items: flex-start; gap: 15px; } .header-right { align-items: flex-start !important; width: 100%; } }
-</style>
 {% endblock %}
 
 {% block content %}
-<header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-    <div style="display:flex; align-items:center; gap:20px; flex:1;">
-        <h1 style="margin:0; font-size: 20px; white-space: nowrap;">Dashboard</h1>
-        <div class="search-wrapper">
-            <i class="fas fa-search"></i>
-            <input type="text" id="global-search" class="search-input" placeholder="Procurar por Nome da Aposta / Search by Market Name...">
-        </div>
+<header class="page-head">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-sub">Large and clustered trades on Polymarket political markets</p>
     </div>
 
-    <div class="header-right" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-        <div style="font-size:12px; color:#8b949e; display:flex; align-items:center; gap:10px;">
-            <span id="global-timer">Syncing...</span>
-            <div id="status-dot" style="width:8px; height:8px; background:#8b949e; border-radius:50%; box-shadow:0 0 8px #8b949e;"></div>
-            <span style="color:#8b949e; font-weight:bold; font-size:12px;" id="live-status">CONNECTING</span>
-        </div>
+    <div class="sync">
+        <span id="status-dot" class="sync-dot"></span>
+        <span id="live-status" class="sync-state">CONNECTING</span>
+        <span class="sync-sep">·</span>
+        <span id="global-timer" class="num">Syncing...</span>
     </div>
 </header>
 
-<div class="content-wrapper">
-
-    <div class="main-grid top-section">
-        <div class="panel">
-            <h2 class="panel-header"><i class="fas fa-binoculars"></i> Latest Bets</h2>
-            <div class="table-container">
-                <table class="table"><tbody id="largest-whales"></tbody></table>
-            </div>
-        </div>
-
-        <div style="display:flex; flex-direction:column; gap:24px; height: 100%;">
-            <div class="panel" style="flex: 1; align-items: center; justify-content: center; position: relative;">
-                <h2 style="position: absolute; top: 15px; left: 15px; margin:0;" class="panel-header"><i class="fas fa-chart-pie"></i> Volume Profile</h2>
-                <div style="height: 200px; width: 100%; max-width: 300px; margin-top: 20px;">
-                    <canvas id="volumeChart"></canvas>
-                </div>
-            </div>
-
-            <div class="panel" style="flex: 1.5;">
-                <h2 class="panel-header"><i class="fas fa-fire"></i> High Conviction</h2>
-                <div class="table-container">
-                    <table class="table"><tbody id="conviction-plays"></tbody></table>
-                </div>
-            </div>
+<section class="kpis" aria-label="Summary">
+    <div class="kpi">
+        <div class="kpi-label">Flagged share of volume</div>
+        <div class="kpi-value num" id="kpi-flagged-share">–</div>
+        <div class="kpi-bar"><canvas id="volumeChart"></canvas></div>
+        <div class="kpi-foot num" id="kpi-flagged-foot">&nbsp;</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Sentiment, last 100 bets</div>
+        <div class="kpi-value num" id="kpi-lean">–</div>
+        <div class="split"><div id="bar-bull" class="split-yes" style="width: 50%;"></div></div>
+        <div class="split-legend num">
+            <span class="pos-yes">Yes <span id="txt-bull">50%</span></span>
+            <span class="pos-no">No <span id="txt-bear">50%</span></span>
         </div>
     </div>
-
-    <div class="main-grid bottom-section">
-        <div class="panel">
-            <h2 class="panel-header" style="justify-content: space-between;">
-                <span><i class="fas fa-wave-square"></i> Market Velocity</span>
-                <span style="font-size:10px; color:#58a6ff;">24h · 30min · BRT</span>
-            </h2>
-            <div style="flex: 1; width: 100%; min-height: 0;">
-                <canvas id="velocityChart"></canvas>
-            </div>
-        </div>
-
-        <div class="panel">
-            <h2 class="panel-header" style="justify-content: space-between;">
-                <span><i class="fas fa-balance-scale"></i> Live Sentiment</span>
-                <span style="font-size:10px; color:#8b949e;">Last 100 Bets</span>
-            </h2>
-            <div style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
-                <div style="margin-bottom: 25px;">
-                    <div class="sent-labels">
-                        <span style="color:#3fb950"><i class="fas fa-arrow-up"></i> BULLS (YES)</span>
-                        <span style="color:#f85149">BEARS (NO) <i class="fas fa-arrow-down"></i></span>
-                    </div>
-                    <div class="sentiment-track">
-                        <div id="bar-bull" class="sent-bull" style="width: 50%;"></div>
-                        <div class="sent-bear"></div>
-                    </div>
-                    <div class="sent-labels" style="margin-top: 4px;">
-                        <span id="txt-bull" class="sent-big-num" style="color:white">50%</span>
-                        <span id="txt-bear" class="sent-big-num" style="color:white">50%</span>
-                    </div>
-                </div>
-                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 6px; text-align: center;">
-                    <div style="font-size: 11px; color: #8b949e; text-transform: uppercase;">Average Trade Size (1h)</div>
-                    <div style="font-size: 24px; color: #e6edf3; font-weight: 600; font-family: monospace; margin-top: 5px;" id="stat-avg-size">$0</div>
-                </div>
-            </div>
-        </div>
+    <div class="kpi">
+        <div class="kpi-label">Average trade, last hour</div>
+        <div class="kpi-value num" id="stat-avg-size">–</div>
     </div>
+    <div class="kpi">
+        <div class="kpi-label">Volume, last 30 min</div>
+        <div class="kpi-value num" id="kpi-recent-volume">–</div>
+        <div class="kpi-foot num" id="kpi-day-volume">&nbsp;</div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-head">
+        <h2 class="panel-title">Volume</h2>
+        <span class="panel-note">24h in 30-minute buckets, BRT</span>
+    </div>
+    <div class="panel-body">
+        <div class="chart-box"><canvas id="velocityChart"></canvas></div>
+    </div>
+</section>
+
+<div class="columns">
+    <section class="panel">
+        <div class="panel-head">
+            <h2 class="panel-title">Latest large bets</h2>
+            <label class="search">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <input type="search" id="global-search" placeholder="Filter markets" aria-label="Filter markets">
+            </label>
+        </div>
+        <div class="scroll">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Market</th>
+                        <th class="hide-sm">Wallet</th>
+                        <th class="hide-sm">Source</th>
+                        <th class="right">Size</th>
+                    </tr>
+                </thead>
+                <tbody id="largest-whales"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-head">
+            <h2 class="panel-title">High conviction</h2>
+            <span class="panel-note">Markets by average bet</span>
+        </div>
+        <div class="scroll">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Market</th>
+                        <th class="right">Avg. size</th>
+                    </tr>
+                </thead>
+                <tbody id="conviction-plays"></tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
-<div class="ticker-wrap"><div class="ticker" id="ticker-content"></div></div>
+<div class="ticker-wrap">
+    <div class="ticker-label">LIVE TRADES</div>
+    <div class="ticker-track"><div class="ticker" id="ticker-content"></div></div>
+</div>
 <div class="toast-container" id="toast-area"></div>
 
 <script>
+    const uiText = typeof window.translateUI === 'function' ? window.translateUI : value => String(value);
     const STORAGE_KEY = 'poly_dashboard_data';
     const UPDATE_INTERVAL = 15000;
     const REQUEST_TIMEOUT = 15000;
+    const WHALE_COLUMNS = 4;
+    const CONVICTION_COLUMNS = 2;
+    const CHART_COLORS = {
+        accent: '#5b9cf6',
+        accentSoft: 'rgba(91, 156, 246, 0.55)',
+        track: '#232327',
+        tick: '#5e5e66',
+        grid: 'rgba(255, 255, 255, 0.04)',
+        tooltipBg: '#18181b',
+        tooltipBorder: '#2a2a2f'
+    };
+    const usdCompact = new Intl.NumberFormat(window.uiLocale || 'en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
     let volumeChartInstance = null;
     let velocityChartInstance = null;
     let lastTopWhale = null;
@@ -184,6 +150,26 @@
         return Number.isFinite(number) ? number : fallback;
     }
 
+    function formatAmount(value) {
+        const amount = finiteNumber(value);
+        const decimals = Math.abs(amount) < 1000 ? 2 : 0;
+        return amount.toLocaleString(window.uiLocale || 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: decimals });
+    }
+
+    function moneyNode(value, extraClass) {
+        const money = document.createElement('span');
+        money.className = extraClass ? `money num ${extraClass}` : 'money num';
+        const unit = document.createElement('span');
+        unit.className = 'unit';
+        unit.textContent = '$';
+        money.append(unit, formatAmount(value));
+        return money;
+    }
+
+    function shortAddress(address) {
+        return `${address.slice(0, 6)}…${address.slice(-4)}`;
+    }
+
     function safeExternalUrl(value, allowedHosts = []) {
         try {
             const url = new URL(String(value));
@@ -197,11 +183,10 @@
         return /^0x[0-9a-fA-F]{40}$/.test(String(value));
     }
 
-    function makeLink(text, href, className, styleText) {
+    function makeLink(text, href, className) {
         const link = document.createElement(href ? 'a' : 'span');
-        link.textContent = String(text || 'Untitled market');
+        link.textContent = text ? String(text) : uiText('Untitled market');
         link.className = className || '';
-        if (styleText) link.style.cssText = styleText;
         if (href) {
             link.href = href;
             link.target = '_blank';
@@ -210,13 +195,18 @@
         return link;
     }
 
+    function cell(className) {
+        const td = document.createElement('td');
+        if (className) td.className = className;
+        return td;
+    }
+
     function showRowsMessage(target, message, columns = 2) {
         const row = document.createElement('tr');
-        const cell = document.createElement('td');
-        cell.colSpan = columns;
-        cell.style.cssText = 'padding:24px; text-align:center; color:#8b949e;';
-        cell.textContent = message;
-        row.appendChild(cell);
+        const messageCell = cell('empty');
+        messageCell.colSpan = columns;
+        messageCell.textContent = uiText(message);
+        row.appendChild(messageCell);
         target.replaceChildren(row);
     }
 
@@ -241,9 +231,9 @@
             console.error(e);
             setFreshness(null, 'Syncing Failed');
             if (!hasRenderedDashboard) {
-                showRowsMessage(document.getElementById('largest-whales'), 'Unable to load dashboard data. Retrying automatically.');
-                showRowsMessage(document.getElementById('conviction-plays'), 'Unable to load dashboard data. Retrying automatically.');
-                document.getElementById('ticker-content').textContent = 'Dashboard data is temporarily unavailable.';
+                showRowsMessage(document.getElementById('largest-whales'), 'Unable to load dashboard data. Retrying automatically.', WHALE_COLUMNS);
+                showRowsMessage(document.getElementById('conviction-plays'), 'Unable to load dashboard data. Retrying automatically.', CONVICTION_COLUMNS);
+                document.getElementById('ticker-content').textContent = uiText('Dashboard data is temporarily unavailable.');
             }
         } finally {
             clearTimeout(timeout);
@@ -260,22 +250,102 @@
         const lastSuccess = finiteNumber(scanner && scanner.last_success, 0);
         const ageSeconds = Date.now() / 1000 - lastSuccess;
         const isLive = scanner && scanner.status === 'ok' && lastSuccess > 0 && ageSeconds >= 0 && ageSeconds < 90;
-        status.textContent = isLive ? 'LIVE' : (fallbackStatus || 'STALE');
-        status.style.color = isLive ? '#3fb950' : '#f85149';
-        dot.style.background = isLive ? '#3fb950' : '#f85149';
-        dot.style.boxShadow = `0 0 8px ${isLive ? '#3fb950' : '#f85149'}`;
+        const stateClass = isLive ? 'is-live' : 'is-stale';
+        status.textContent = uiText(isLive ? 'LIVE' : (fallbackStatus || 'STALE'));
+        status.className = `sync-state ${stateClass}`;
+        dot.className = `sync-dot ${stateClass}`;
         if (isLive) {
             const expiresIn = Math.max(1, Math.ceil((90 - ageSeconds) * 1000));
             freshnessTimer = setTimeout(() => setFreshness(scanner), expiresIn);
         }
     }
 
+    function renderWhaleRow(w) {
+        const src = getSourceConfig(w.funding_source);
+        const row = document.createElement('tr');
+
+        const marketCell = cell();
+        marketCell.appendChild(makeLink(w.market_question, safeExternalUrl(w.bet_link, ['polymarket.com']), 'question'));
+
+        const walletCell = cell('hide-sm');
+        if (isWalletAddress(w.whale_address)) {
+            const wallet = makeLink(shortAddress(w.whale_address), `https://polygonscan.com/address/${w.whale_address}`, 'wallet mono');
+            wallet.title = 'View wallet on PolygonScan';
+            walletCell.appendChild(wallet);
+        } else {
+            walletCell.className = 'hide-sm muted';
+            walletCell.textContent = '–';
+        }
+
+        const sourceCell = cell('hide-sm');
+        if (src.label !== 'UNK') {
+            const badge = document.createElement('span');
+            badge.className = `badge ${src.class}`;
+            badge.textContent = src.label;
+            sourceCell.appendChild(badge);
+        } else {
+            sourceCell.className = 'hide-sm muted';
+            sourceCell.textContent = '–';
+        }
+
+        const sizeCell = cell('right');
+        sizeCell.appendChild(moneyNode(w.total_size));
+
+        row.append(marketCell, walletCell, sourceCell, sizeCell);
+        return row;
+    }
+
+    function renderConvictionRow(m) {
+        const row = document.createElement('tr');
+        const marketCell = cell();
+        marketCell.appendChild(makeLink(m.market_question, safeExternalUrl(m.link, ['polymarket.com']), 'question'));
+        const sizeCell = cell('right');
+        sizeCell.appendChild(moneyNode(Math.round(finiteNumber(m.avg_size))));
+        row.append(marketCell, sizeCell);
+        return row;
+    }
+
+    function renderTickerItem(f) {
+        const item = document.createElement('div');
+        item.className = 'ticker-item';
+        const position = document.createElement('span');
+        const positionText = String(f.position || 'Unknown');
+        position.className = positionText.includes('Yes') ? 'ticker-yes' : 'ticker-no';
+        position.textContent = uiText(positionText);
+        item.append(String(f.market_question || 'Untitled market'), ' ', position, ' ', moneyNode(f.size_usd));
+        return item;
+    }
+
+    function renderLean(yesPct, noPct) {
+        const lean = document.getElementById('kpi-lean');
+        const side = document.createElement('span');
+        if (yesPct === noPct) {
+            lean.replaceChildren('50%', ' ');
+            side.className = 'lean muted';
+            side.textContent = uiText('even');
+        } else {
+            const yesLeads = yesPct > noPct;
+            lean.replaceChildren(`${yesLeads ? yesPct : noPct}%`, ' ');
+            side.className = yesLeads ? 'lean pos-yes' : 'lean pos-no';
+            side.textContent = uiText(yesLeads ? 'Yes' : 'No');
+        }
+        lean.appendChild(side);
+    }
+
+    function renderVolumeKpis(dataPoints) {
+        const values = Array.isArray(dataPoints) ? dataPoints.map(value => finiteNumber(value)) : [];
+        const lastBucket = values.length ? values[values.length - 1] : 0;
+        const dayTotal = values.slice(-48).reduce((sum, value) => sum + value, 0);
+        document.getElementById('kpi-recent-volume').replaceChildren(moneyNode(lastBucket));
+        document.getElementById('kpi-day-volume').textContent = uiText(`${usdCompact.format(dayTotal)} in the last 24h`);
+    }
+
     function renderDashboard(data, isFreshUpdate = false) {
         const timestamp = finiteNumber(data.timestamp, 0);
         const dateObj = new Date(timestamp);
         document.getElementById('global-timer').innerText = timestamp && !Number.isNaN(dateObj.getTime())
-            ? "Last Update: " + dateObj.toLocaleTimeString()
-            : 'Update time unavailable';
+            ? uiText("Last Update: " + dateObj.toLocaleTimeString(window.uiLocale))
+            : uiText('Update time unavailable');
         if (data.latency && document.getElementById('sys-latency')) {
             document.getElementById('sys-latency').innerText = data.latency + "ms";
         }
@@ -283,75 +353,19 @@
         const whales = Array.isArray(data.largest_whales) ? data.largest_whales : [];
         const whaleBody = document.getElementById('largest-whales');
         const currentTopWhale = whales.length > 0 ? whales[0].whale_address : null;
-        const whaleRows = whales.map(w => {
-            const src = getSourceConfig(w.funding_source);
-            const row = document.createElement('tr');
-            const marketCell = document.createElement('td');
-            marketCell.appendChild(makeLink(w.market_question, safeExternalUrl(w.bet_link, ['polymarket.com']), 'question', 'font-size:15px;'));
-            const metricCell = document.createElement('td');
-            metricCell.className = 'metric';
-            const money = document.createElement('span');
-            money.className = 'money';
-            money.textContent = '$' + finiteNumber(w.total_size).toLocaleString();
-            metricCell.appendChild(money);
-            if (src.label !== 'UNK') {
-                const badge = document.createElement('span');
-                badge.className = `badge ${src.class}`;
-                badge.textContent = src.label;
-                metricCell.append(' ', badge);
-            }
-            if (isWalletAddress(w.whale_address)) {
-                const scan = makeLink('', `https://polygonscan.com/address/${w.whale_address}`, 'tx-link');
-                scan.title = 'View Wallet on PolygonScan';
-                const icon = document.createElement('i');
-                icon.className = 'fas fa-external-link-alt';
-                scan.appendChild(icon);
-                metricCell.appendChild(scan);
-            }
-            row.append(marketCell, metricCell);
-            return row;
-        });
+        const whaleRows = whales.map(renderWhaleRow);
         whaleBody.replaceChildren(...whaleRows);
-        if (!whaleRows.length) showRowsMessage(whaleBody, 'No whale activity available.');
+        if (!whaleRows.length) showRowsMessage(whaleBody, 'No whale activity available.', WHALE_COLUMNS);
 
         const convictionBody = document.getElementById('conviction-plays');
-        const convictionRows = (Array.isArray(data.conviction_plays) ? data.conviction_plays : []).map(m => {
-            const row = document.createElement('tr');
-            const marketCell = document.createElement('td');
-            marketCell.style.verticalAlign = 'middle';
-            marketCell.appendChild(makeLink(m.market_question, safeExternalUrl(m.link, ['polymarket.com']), 'question', 'font-size:14px;'));
-            const metricCell = document.createElement('td');
-            metricCell.className = 'metric';
-            metricCell.style.verticalAlign = 'middle';
-            const value = document.createElement('span');
-            value.style.cssText = 'color:#f1e05a; font-weight:700;';
-            value.textContent = '$' + Math.round(finiteNumber(m.avg_size)).toLocaleString();
-            metricCell.appendChild(value);
-            row.append(marketCell, metricCell);
-            return row;
-        });
+        const convictionRows = (Array.isArray(data.conviction_plays) ? data.conviction_plays : []).map(renderConvictionRow);
         convictionBody.replaceChildren(...convictionRows);
-        if (!convictionRows.length) showRowsMessage(convictionBody, 'No high-conviction activity available.');
+        if (!convictionRows.length) showRowsMessage(convictionBody, 'No high-conviction activity available.', CONVICTION_COLUMNS);
 
         const ticker = document.getElementById('ticker-content');
-        const tickerItems = (Array.isArray(data.feed) ? data.feed : []).map(f => {
-            const item = document.createElement('div');
-            item.className = 'ticker-item';
-            const icon = document.createElement('i');
-            icon.className = 'fas fa-caret-right';
-            icon.style.color = '#30363d';
-            const position = document.createElement('span');
-            const positionText = String(f.position || 'Unknown');
-            position.style.color = positionText.includes('Yes') ? '#3fb950' : '#f85149';
-            position.textContent = `[${positionText}]`;
-            const money = document.createElement('span');
-            money.className = 'money';
-            money.textContent = '$' + finiteNumber(f.size_usd).toLocaleString();
-            item.append(icon, ' ', String(f.market_question || 'Untitled market'), ' ', position, ' ', money);
-            return item;
-        });
+        const tickerItems = (Array.isArray(data.feed) ? data.feed : []).map(renderTickerItem);
         ticker.replaceChildren(...tickerItems);
-        if (!tickerItems.length) ticker.textContent = 'No recent activity.';
+        if (!tickerItems.length) ticker.textContent = uiText('No recent activity.');
 
         if (data.sentiment) {
             const total = data.sentiment.bulls + data.sentiment.bears;
@@ -360,13 +374,15 @@
             document.getElementById('bar-bull').style.width = bullPct + "%";
             document.getElementById('txt-bull').innerText = bullPct + "%";
             document.getElementById('txt-bear').innerText = bearPct + "%";
-            document.getElementById('stat-avg-size').innerText = "$" + Math.round(data.sentiment.avg_size).toLocaleString();
+            renderLean(bullPct, bearPct);
+            document.getElementById('stat-avg-size').replaceChildren(moneyNode(Math.round(finiteNumber(data.sentiment.avg_size))));
         }
         renderChart(data.volume_chart || {});
         renderVelocityChart(data.velocity_chart, data.velocity_timestamps);
+        renderVolumeKpis(data.velocity_chart);
 
         if (isFreshUpdate && lastTopWhale && currentTopWhale && currentTopWhale !== lastTopWhale) {
-            showToast("New Alpha Whale Detected!", "fa-binoculars");
+            showToast("New top whale detected");
         }
         lastTopWhale = currentTopWhale;
         setFreshness(data.scanner);
@@ -381,20 +397,38 @@
 
     function renderChart(volData) {
         const ctx = document.getElementById('volumeChart').getContext('2d');
-        let values = [finiteNumber(volData.whale), finiteNumber(volData.retail)];
-        let bgColors = ['#58a6ff', '#238636'];
-        let labels = ['Flagged Activity', 'Other Activity'];
-        if (values[0] === 0 && values[1] === 0) { values = [1]; bgColors = ['#30363d']; labels = ['No Data Yet']; }
+        const flagged = finiteNumber(volData.whale);
+        const other = finiteNumber(volData.retail);
+        const total = flagged + other;
 
+        const share = document.getElementById('kpi-flagged-share');
+        const foot = document.getElementById('kpi-flagged-foot');
+        if (total > 0) {
+            share.textContent = `${(flagged / total * 100).toFixed(1)}%`;
+            foot.textContent = uiText(`${usdCompact.format(flagged)} of ${usdCompact.format(total)}`);
+        } else {
+            share.textContent = '–';
+            foot.textContent = uiText('No volume yet');
+        }
+
+        const datasets = [
+            { label: uiText('Flagged'), data: [flagged], backgroundColor: CHART_COLORS.accent, borderRadius: 3, borderSkipped: false },
+            { label: uiText('Other'), data: [other], backgroundColor: CHART_COLORS.track, borderRadius: 3, borderSkipped: false }
+        ];
         const config = {
-            type: 'doughnut',
-            data: { labels: labels, datasets: [{ data: values, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#8b949e', font: {size: 13}, boxWidth: 10, padding: 15 } } } }
+            type: 'bar',
+            data: { labels: [''], datasets: datasets },
+            options: {
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+                datasets: { bar: { barPercentage: 1, categoryPercentage: 1 } },
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: { x: { display: false, stacked: true, max: total || 1 }, y: { display: false, stacked: true } }
+            }
         };
         if (volumeChartInstance) {
-            volumeChartInstance.data.labels = labels;
-            volumeChartInstance.data.datasets[0].data = values;
-            volumeChartInstance.data.datasets[0].backgroundColor = bgColors;
+            volumeChartInstance.data.datasets[0].data = [flagged];
+            volumeChartInstance.data.datasets[1].data = [other];
+            volumeChartInstance.options.scales.x.max = total || 1;
             volumeChartInstance.update();
         }
         else { volumeChartInstance = new Chart(ctx, config); }
@@ -415,46 +449,60 @@
             const d = new Date(finiteNumber(timestamp) * 1000);
             return d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
         });
+        const barColors = values.map((_, index) => index === values.length - 1 ? CHART_COLORS.accent : CHART_COLORS.accentSoft);
 
         const config = {
-            type: 'line',
+            type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Volume (USD)',
+                    label: uiText('Volume (USD)'),
                     data: values,
-                    borderColor: '#3fb950',
-                    backgroundColor: (ctx) => {
-                        const bg = ctx.chart.ctx.createLinearGradient(0, 0, 0, 200);
-                        bg.addColorStop(0, 'rgba(63, 185, 80, 0.4)');
-                        bg.addColorStop(1, 'rgba(63, 185, 80, 0)');
-                        return bg;
-                    },
-                    borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0
+                    backgroundColor: barColors,
+                    hoverBackgroundColor: CHART_COLORS.accent,
+                    borderRadius: 2,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.9
                 }]
             },
             options: {
-                responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { display: false }, tooltip: { callbacks: { title: (ctx) => "BRT: " + ctx[0].label } } },
+                responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: CHART_COLORS.tooltipBg, borderColor: CHART_COLORS.tooltipBorder, borderWidth: 1,
+                        titleColor: '#8e8e96', bodyColor: '#f4f4f5', padding: 10, displayColors: false,
+                        callbacks: {
+                            title: (items) => items[0].label + ' BRT',
+                            label: (item) => '$' + formatAmount(item.parsed.y)
+                        }
+                    }
+                },
                 scales: {
-                    x: { display: true, grid: { display: false }, ticks: { color: '#8b949e', font: { size: 12, family: 'monospace' }, maxTicksLimit: 12, maxRotation: 0 } },
-                    y: { display: true, beginAtZero: true, min: 0, suggestedMax: 100, grid: { color: 'rgba(48, 54, 61, 0.5)' }, ticks: { color: '#8b949e', font: {family: 'monospace', size: 12} } }
+                    x: { grid: { display: false }, border: { display: false }, ticks: { color: CHART_COLORS.tick, font: { size: 11 }, maxTicksLimit: 9, maxRotation: 0 } },
+                    y: {
+                        beginAtZero: true, min: 0, suggestedMax: 100, border: { display: false },
+                        grid: { color: CHART_COLORS.grid }, position: 'right',
+                        ticks: { color: CHART_COLORS.tick, font: { size: 11 }, maxTicksLimit: 4, callback: (value) => usdCompact.format(value) }
+                    }
                 }
             }
         };
-        if (velocityChartInstance) { velocityChartInstance.data.labels = labels; velocityChartInstance.data.datasets[0].data = values; velocityChartInstance.update(); }
+        if (velocityChartInstance) {
+            velocityChartInstance.data.labels = labels;
+            velocityChartInstance.data.datasets[0].data = values;
+            velocityChartInstance.data.datasets[0].backgroundColor = barColors;
+            velocityChartInstance.update();
+        }
         else { velocityChartInstance = new Chart(ctx, config); }
     }
 
-    function showToast(msg, icon) {
+    function showToast(msg) {
         const container = document.getElementById('toast-area');
         const el = document.createElement('div');
         el.className = 'toast';
-        const iconEl = document.createElement('i');
-        iconEl.className = `fas ${icon}`;
-        const textEl = document.createElement('span');
-        textEl.textContent = String(msg);
-        el.append(iconEl, textEl);
+        el.textContent = uiText(msg);
         container.appendChild(el);
         requestAnimationFrame(() => el.classList.add('show'));
         setTimeout(() => el.classList.remove('show'), 5000);

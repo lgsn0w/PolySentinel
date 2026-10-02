@@ -1,0 +1,126 @@
+.funding-controls,
+.funding-section {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.funding-section h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.funding-controls label,
+.funding-filters label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.funding-input-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.funding-input-row input {
+  flex: 1 1 340px;
+  min-width: 0;
+}
+
+.funding-input-row input,
+.funding-filters select {
+  background: transparent;
+  color: inherit;
+  border: 1px solid #52525b;
+  padding: 12px;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.funding-input-row input {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 14px;
+}
+
+.funding-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.funding-scroll {
+  overflow-x: auto;
+  max-height: 640px;
+}
+
+.funding-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.funding-table th,
+.funding-table td {
+  text-align: left;
+  padding: 12px 10px;
+  border-bottom: 1px solid #52525b;
+  vertical-align: top;
+}
+
+.funding-table th {
+  font-weight: 500;
+}
+
+.funding-path,
+.funding-card {
+  padding: 14px 0;
+  border-bottom: 1px solid #52525b;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.funding-path .wallet-link {
+  font-family: "JetBrains Mono", monospace;
+}
+
+.funding-path small,
+.funding-card small {
+  display: block;
+  font-size: 14px;
+}
+
+#funding-status {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+#funding-warnings {
+  line-height: 1.6;
+}
+
+#funding-coverage {
+  overflow-x: auto;
+}
+
+.funding-section .muted,
+.funding-controls .muted {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.funding-section [hidden],
+[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+  .funding-controls,
+  .funding-section {
+    padding: 16px;
+  }
+
+  .funding-input-row .btn {
+    flex: 1;
+  }
+}

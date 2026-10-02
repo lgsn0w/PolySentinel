@@ -10,13 +10,26 @@ from polysentinel.storage import Store
 from polysentinel.web import create_app
 
 WALLET = "0x" + "a" * 40
-MARKET = {"question": "Test market", "category": "Politics", "link": "https://polymarket.com/event/test"}
+MARKET = {
+    "question": "Test market",
+    "category": "Politics",
+    "link": "https://polymarket.com/event/test",
+}
 
 
 def trade(number=1, ts=1000, usd=1500, **extra):
-    return {"proxyWallet": WALLET, "timestamp": ts, "size": usd * 2, "price": .5,
-            "side": "BUY", "outcome": "Yes", "conditionId": "cid", "asset": "asset",
-            "transactionHash": f"tx{number}", **extra}
+    return {
+        "proxyWallet": WALLET,
+        "timestamp": ts,
+        "size": usd * 2,
+        "price": 0.5,
+        "side": "BUY",
+        "outcome": "Yes",
+        "conditionId": "cid",
+        "asset": "asset",
+        "transactionHash": f"tx{number}",
+        **extra,
+    }
 
 
 @pytest.fixture
@@ -30,7 +43,10 @@ def scanner(tmp_path):
 
 def rows(scanner):
     with scanner.store.connection() as conn:
-        return [dict(r) for r in conn.execute("SELECT * FROM trades ORDER BY timestamp,trade_id")]
+        return [
+            dict(r)
+            for r in conn.execute("SELECT * FROM trades ORDER BY timestamp,trade_id")
+        ]
 
 
 def test_replay_timestamp_ties_and_restart(scanner):
@@ -46,7 +62,10 @@ def test_replay_timestamp_ties_and_restart(scanner):
 
 
 def test_same_transaction_distinct_fills(scanner):
-    assert scanner.ingest([trade(asset="one"), trade(asset="two"), trade(usd=1600)], 1100) == 3
+    assert (
+        scanner.ingest([trade(asset="one"), trade(asset="two"), trade(usd=1600)], 1100)
+        == 3
+    )
 
 
 def test_documented_unlabeled_outcome_does_not_block_batch(scanner):
@@ -57,8 +76,13 @@ def test_documented_unlabeled_outcome_does_not_block_batch(scanner):
 
 
 def test_unlabeled_tokens_do_not_accumulate_together(scanner):
-    scanner.ingest([trade(1, asset="one", outcome="", outcome_index=999),
-                    trade(2, asset="two", outcome="", outcome_index=999)], 1100)
+    scanner.ingest(
+        [
+            trade(1, asset="one", outcome="", outcome_index=999),
+            trade(2, asset="two", outcome="", outcome_index=999),
+        ],
+        1100,
+    )
     assert not any(row["flagged"] for row in rows(scanner))
 
 
@@ -72,8 +96,14 @@ def test_trade_persisted_before_alert_and_survives_restart(scanner):
 
 
 def test_sliding_window_does_not_extend_on_activity(scanner):
-    scanner.ingest([trade(1, ts=1000, usd=1000), trade(2, ts=1500, usd=1000),
-                    trade(3, ts=2000, usd=1000)], 2100)
+    scanner.ingest(
+        [
+            trade(1, ts=1000, usd=1000),
+            trade(2, ts=1500, usd=1000),
+            trade(3, ts=2000, usd=1000),
+        ],
+        2100,
+    )
     assert not any(r["flagged"] for r in rows(scanner))
 
 
@@ -85,13 +115,17 @@ def test_window_boundary_and_late_trade(scanner):
 
 def test_different_sides_and_markets_do_not_accumulate(scanner):
     scanner.market_cache["cid2"] = MARKET
-    scanner.ingest([trade(1), trade(2, side="SELL"), trade(3, conditionId="cid2")], 1100)
+    scanner.ingest(
+        [trade(1), trade(2, side="SELL"), trade(3, conditionId="cid2")], 1100
+    )
     assert not any(r["flagged"] for r in rows(scanner))
 
 
 def test_write_failure_rolls_back_trade_and_progress(scanner):
     with scanner.store.connection() as conn:
-        conn.execute("CREATE TRIGGER fail_insert BEFORE INSERT ON trades BEGIN SELECT RAISE(ABORT,'test failure'); END")
+        conn.execute(
+            "CREATE TRIGGER fail_insert BEFORE INSERT ON trades BEGIN SELECT RAISE(ABORT,'test failure'); END"
+        )
     with pytest.raises(sqlite3.IntegrityError):
         scanner.ingest([trade()], 1100)
     assert rows(scanner) == []
@@ -102,11 +136,21 @@ def test_write_failure_rolls_back_trade_and_progress(scanner):
     assert scanner.ingest([trade()], 1100) == 1
 
 
-@pytest.mark.parametrize("extra", [{"price": float("nan")}, {"size": -1}, {"proxyWallet": "bad"},
-                                   {"side": "invalid"}, {"price": 2}, {"asset": None},
-                                   {"outcome": None}, {"transactionHash": None},
-                                   {"outcome": None, "outcome_index": 999},
-                                   {"outcome": "   ", "outcome_index": 999}])
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"price": float("nan")},
+        {"size": -1},
+        {"proxyWallet": "bad"},
+        {"side": "invalid"},
+        {"price": 2},
+        {"asset": None},
+        {"outcome": None},
+        {"transactionHash": None},
+        {"outcome": None, "outcome_index": 999},
+        {"outcome": "   ", "outcome_index": 999},
+    ],
+)
 def test_invalid_batch_does_not_advance_progress(scanner, extra):
     with pytest.raises(ValueError):
         scanner.ingest([trade(1), trade(2, **extra)], 1100)
@@ -118,9 +162,11 @@ def test_enrichment_failure_retains_previous_values(scanner):
     scanner.ingest([trade(usd=5000)], 1100)
     with scanner.store.connection() as conn:
         conn.execute("UPDATE wallets SET funding_source='Known',portfolio_value=50")
+
     class EmptyClient:
         def wallet_intel(self, wallet):
             return {}
+
     assert scanner.enrich_once(EmptyClient())
     with scanner.store.connection() as conn:
         row = conn.execute("SELECT * FROM wallets").fetchone()
@@ -130,9 +176,15 @@ def test_enrichment_failure_retains_previous_values(scanner):
 
 def test_api_chart_sentiment_and_volume(scanner):
     now = int(time.time())
-    scanner.ingest([trade(1, ts=now, usd=5000), trade(2, ts=now, usd=100, side="SELL"),
-                    trade(3, ts=now, usd=100, outcome="No", side="SELL"),
-                    trade(4, ts=now, usd=100, outcome="Candidate")], now)
+    scanner.ingest(
+        [
+            trade(1, ts=now, usd=5000),
+            trade(2, ts=now, usd=100, side="SELL"),
+            trade(3, ts=now, usd=100, outcome="No", side="SELL"),
+            trade(4, ts=now, usd=100, outcome="Candidate"),
+        ],
+        now,
+    )
     client = create_app(store=scanner.store).test_client()
     data = client.get("/api/stats").get_json()
     assert len(data["velocity_chart"]) == len(data["velocity_timestamps"]) == 48
@@ -159,8 +211,10 @@ def test_empty_database_pages_and_health(scanner):
 
 def test_database_error_is_not_empty_success(scanner, monkeypatch):
     client = create_app(store=scanner.store).test_client()
+
     def fail():
         raise sqlite3.OperationalError("private database path")
+
     monkeypatch.setattr(scanner.store, "connection", fail)
     response = client.get("/api/stats")
     assert response.status_code == 503
@@ -169,10 +223,12 @@ def test_database_error_is_not_empty_success(scanner, monkeypatch):
 
 def test_poll_uses_durable_cursor_with_overlap(scanner):
     scanner.ingest([trade(ts=1000)], 1100)
+
     class FakeClient:
         def trades_since(self, since):
             assert since == 880
             return [trade(ts=1000), trade(2, ts=1000)]
+
     restored = WhaleSentinel(scanner.settings, client=FakeClient())
     restored.market_cache = scanner.market_cache
     restored.market_refresh = time.time()
@@ -201,12 +257,15 @@ def test_pending_market_classified_nonpolitical_is_excluded(scanner):
 
 def test_closed_market_pending_is_resolved_by_targeted_lookup(scanner):
     scanner.ingest([trade(conditionId="closed")], 1100)
+
     class FakeClient:
         def trades_since(self, since):
             return []
+
         def conditions(self, ids):
             assert ids == ["closed"]
             return {"closed": MARKET}
+
     scanner.client = FakeClient()
     assert scanner.poll_once() == 1
     assert rows(scanner)[0]["condition_id"] == "closed"
@@ -216,8 +275,10 @@ def test_failed_classification_is_durable(scanner):
     class FakeClient:
         def trades_since(self, since):
             return [trade(conditionId="unknown")]
+
         def conditions(self, ids):
             raise RuntimeError("not available")
+
     scanner.client = FakeClient()
     assert scanner.poll_once() == 0
     with scanner.store.connection() as conn:

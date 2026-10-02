@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+{% block title %}Transfer explorer · PolySentinel{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='funding.css') }}">
+{% endblock %}
+{% block content %}
+<header class="page-head">
+    <div>
+        <h1 class="page-title">Transfer explorer</h1>
+        <p class="page-sub">Explore observed transfers and wallet relationships. This is not a funding-source or identity detector.</p>
+    </div>
+</header>
+<section class="panel funding-controls">
+    <form id="funding-form">
+        <label for="funding-address">Polygon wallet address</label>
+        <div class="funding-input-row">
+            <input id="funding-address" name="address" placeholder="0x…" required pattern="0x[0-9a-fA-F]{40}" autocomplete="off" spellcheck="false">
+            <button class="btn" type="submit">Open report</button>
+            <button class="btn" type="button" id="funding-run">Investigate / refresh</button>
+            <button class="btn" type="button" id="funding-classify">Classify saved transfers</button>
+        </div>
+    </form>
+    <p id="funding-status" role="status" aria-live="polite">Enter a wallet or explore transfers from its dossier.</p>
+    <p class="muted">Background investigations require the scanner and an Etherscan V2 key with Polygon access. Recent samples are bounded to three upstream hops; they are not a lifetime ledger.</p>
+    <a id="funding-export" class="wallet-link" hidden>Download evidence JSON</a>
+</section>
+<div id="funding-results" hidden>
+    <section class="panel funding-section">
+        <h2>Receipt classification</h2>
+        <p id="classification-status" role="status" aria-live="polite"></p>
+        <div id="classification-counts"></div>
+        <h3>Verified simple transfers</h3>
+        <p class="muted">Exact on-chain token transfers in supported simple transactions. Inflows are deposit candidates, not proof of original funding, intent or ownership. Complex exchange withdrawals, bridges and smart-wallet operations may remain unknown.</p>
+        <div id="classification-direct" class="funding-scroll"></div>
+    </section>
+    <section class="panel funding-section">
+        <h2>Observed direct inflows</h2>
+        <p class="muted">API-row totals for each sender and token contract, not an audited balance. Missing log indices make event identity ambiguous. Native POL can be gas funding. Tokens are not valued in dollars.</p>
+        <div id="funding-summary" class="funding-scroll"></div>
+    </section>
+    <section class="panel funding-section">
+        <h2>Verified simple-transfer links</h2>
+        <p class="muted">Only receipt-classified simple transfers appear here. Unknown and trading-related transactions remain in the evidence table. These links do not prove ownership or continuity of particular funds.</p>
+        <div id="funding-graph"></div>
+    </section>
+    <section class="panel funding-section">
+        <h2>Relationships across saved investigations</h2>
+        <div id="funding-relationships"></div>
+        <h3>Trading-time overlap</h3>
+        <p class="muted">Up to 500 tracked trades in the previous seven days. Repeated overlap is descriptive, not proof of coordination.</p>
+        <div id="funding-behavior"></div>
+    </section>
+    <section class="panel funding-section">
+        <h2>Transfer evidence</h2>
+        <div class="funding-filters">
+            <label>
+                Direction
+                <select id="funding-direction">
+                    <option value="all">All observed edges</option>
+                    <option value="incoming">Direct inflows</option>
+                    <option value="outgoing">Direct outflows</option>
+                    <option value="upstream">Upstream</option>
+                </select>
+            </label>
+            <label>
+                Asset
+                <select id="funding-asset">
+                    <option value="all">All contracts</option>
+                </select>
+            </label>
+            <label>
+                Classification
+                <select id="funding-category">
+                    <option value="all">All categories</option>
+                    <option value="direct_transfer">Verified simple transfer</option>
+                    <option value="trade_related">Trading-related</option>
+                    <option value="payout_redemption">Payout redemption</option>
+                    <option value="position_split">Position split</option>
+                    <option value="positions_merge">Positions merge</option>
+                    <option value="unknown">Unknown</option>
+                </select>
+            </label>
+        </div>
+        <div id="funding-evidence" class="funding-scroll"></div>
+    </section>
+    <section class="panel funding-section">
+        <h2>Coverage and limitations</h2>
+        <div id="funding-coverage"></div>
+        <div id="funding-warnings"></div>
+    </section>
+</div>
+<script src="{{ url_for('static', filename='funding.js') }}" defer></script>
+{% endblock %}

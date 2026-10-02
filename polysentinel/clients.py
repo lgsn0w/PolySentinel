@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 import math
+import time
 from urllib.parse import urlsplit
 
 import requests
@@ -10,14 +11,6 @@ from urllib3.util.retry import Retry
 log = logging.getLogger(__name__)
 DATA_API = "https://data-api.polymarket.com"
 GAMMA_API = "https://gamma-api.polymarket.com"
-KNOWN_WALLETS = {
-    "0xa9d1e08c7793af67e9d92fe3028ac693eb80b7d0": "Coinbase",
-    "0x503828976d22510aad0201ac7ec88293211d23da": "Coinbase",
-    "0x28c6c06298d514db089934071355e5743bf21d60": "Binance",
-    "0x21a31ee1afc51d94c2efccaa2092ad1028285549": "Binance Hot Wallet",
-    "0x12d66f87a04a9e220743712ce6d9bb1b5616b438": "Tornado Cash",
-    "0x4a14347083b80e5216ca31350a2d21702ac3650d": "Wintermute",
-}
 
 
 class UpstreamError(RuntimeError):
@@ -27,31 +20,50 @@ class UpstreamError(RuntimeError):
 class Client:
     def __init__(self, settings, session=None):
         self.settings = settings
+        self._etherscan_next_request = 0
         self.session = session or requests.Session()
         if session is None:
-            retry = Retry(total=2, backoff_factor=.5, status_forcelist=(429, 500, 502, 503, 504),
-                          allowed_methods=("GET",), respect_retry_after_header=False)
+            retry = Retry(
+                total=2,
+                backoff_factor=0.5,
+                status_forcelist=(429, 500, 502, 503, 504),
+                allowed_methods=("GET",),
+                respect_retry_after_header=False,
+            )
             self.session.mount("https://", HTTPAdapter(max_retries=retry))
 
     def get(self, url, params=None):
+        if urlsplit(url).hostname == "api.etherscan.io":
+            delay = self._etherscan_next_request - time.monotonic()
+            if delay > 0:
+                time.sleep(delay)
+            self._etherscan_next_request = time.monotonic() + 0.6
         try:
             response = self.session.get(url, params=params, timeout=(5, 15))
             response.raise_for_status()
             return response.json()
         except requests.HTTPError as error:
             endpoint = urlsplit(url)
-            status = error.response.status_code if error.response is not None else "unknown"
-            raise UpstreamError(f"{endpoint.hostname}{endpoint.path}: HTTP {status}") from None
+            status = (
+                error.response.status_code if error.response is not None else "unknown"
+            )
+            raise UpstreamError(
+                f"{endpoint.hostname}{endpoint.path}: HTTP {status}"
+            ) from None
         except (requests.RequestException, ValueError) as error:
             endpoint = urlsplit(url)
-            raise UpstreamError(f"{endpoint.hostname}{endpoint.path}: {type(error).__name__}") from None
+            raise UpstreamError(
+                f"{endpoint.hostname}{endpoint.path}: {type(error).__name__}"
+            ) from None
 
     def markets(self):
         markets = {}
         for tag in ("politics", "us-election"):
             markets.update(self._markets_for_tag(tag))
         if not any(markets.values()):
-            raise UpstreamError("No political markets found; refusing to discard trades")
+            raise UpstreamError(
+                "No political markets found; refusing to discard trades"
+            )
         return markets
 
     def _markets_for_tag(self, tag):
@@ -72,8 +84,11 @@ class Client:
                 for market in event.get("markets", []):
                     cid = market.get("conditionId")
                     if cid:
-                        metadata = {"question": str(market.get("question") or "Unknown market"),
-                                    "category": "Politics", "link": f"https://polymarket.com/event/{slug}"}
+                        metadata = {
+                            "question": str(market.get("question") or "Unknown market"),
+                            "category": "Politics",
+                            "link": f"https://polymarket.com/event/{slug}",
+                        }
                         if political or cid not in markets:
                             markets[cid] = metadata if political else None
             cursor = page.get("next_cursor")
@@ -86,30 +101,56 @@ class Client:
 
     def trades_since(self, since):
         trades, seen = [], set()
-        params = {"limit": self.settings.page_size, "taker_only": "true",
-                  "filter_type": "CASH", "filter_amount": self.settings.minimum_usd}
+        params = {
+            "limit": self.settings.page_size,
+            "taker_only": "true",
+            "filter_type": "CASH",
+            "filter_amount": self.settings.minimum_usd,
+        }
         last_timestamp = None
-        aliases = {"proxyWallet": "proxy_wallet", "conditionId": "condition_id",
-                   "asset": "token_id", "transactionHash": "transaction_hash"}
+        aliases = {
+            "proxyWallet": "proxy_wallet",
+            "conditionId": "condition_id",
+            "asset": "token_id",
+            "transactionHash": "transaction_hash",
+        }
         for _ in range(1000):
             page = self.get(f"{DATA_API}/v2/trades", dict(params))
-            if not isinstance(page, dict) or not isinstance(page.get("data"), list) or not isinstance(page.get("pagination"), dict):
+            if (
+                not isinstance(page, dict)
+                or not isinstance(page.get("data"), list)
+                or not isinstance(page.get("pagination"), dict)
+            ):
                 raise UpstreamError("Invalid trades response")
             rows, pagination = page["data"], page["pagination"]
             try:
                 timestamps = [int(row["timestamp"]) for row in rows]
             except (KeyError, TypeError, ValueError):
                 raise UpstreamError("Invalid trade timestamp") from None
-            if timestamps != sorted(timestamps, reverse=True) or (timestamps and last_timestamp is not None and timestamps[0] > last_timestamp):
+            if timestamps != sorted(timestamps, reverse=True) or (
+                timestamps
+                and last_timestamp is not None
+                and timestamps[0] > last_timestamp
+            ):
                 raise UpstreamError("Trade feed is not ordered")
             cursor = pagination.get("next_cursor")
-            if cursor is not None and (not isinstance(cursor, str) or not cursor or cursor in seen):
+            if cursor is not None and (
+                not isinstance(cursor, str) or not cursor or cursor in seen
+            ):
                 raise UpstreamError("Invalid or repeated trade cursor")
             if pagination.get("has_more") is not (cursor is not None):
                 raise UpstreamError("Inconsistent trade pagination")
             for row, ts in zip(rows, timestamps):
                 if ts >= since:
-                    trades.append({**row, **{target: row.get(source) for target, source in aliases.items()}})
+                    trades.append(
+                        {
+                            **row,
+                            **{
+                                target: row.get(source)
+                                for target, source in aliases.items()
+                            },
+                        }
+                    )
             if cursor is None or (timestamps and timestamps[-1] < since):
                 return trades
             if not timestamps:
@@ -122,10 +163,17 @@ class Client:
     def conditions(self, condition_ids):
         classified = {}
         for start in range(0, len(condition_ids), 50):
-            chunk = condition_ids[start:start + 50]
+            chunk = condition_ids[start : start + 50]
             for closed in ("false", "true"):
-                rows = self.get(f"{GAMMA_API}/markets", {
-                    "condition_ids": chunk, "closed": closed, "include_tag": "true", "limit": 100})
+                rows = self.get(
+                    f"{GAMMA_API}/markets",
+                    {
+                        "condition_ids": chunk,
+                        "closed": closed,
+                        "include_tag": "true",
+                        "limit": 100,
+                    },
+                )
                 if not isinstance(rows, list):
                     raise UpstreamError("Invalid condition lookup response")
                 for row in rows:
@@ -137,12 +185,20 @@ class Client:
                     for event in events:
                         tags.extend(event.get("tags") or [])
                     slugs = {str(tag.get("slug") or "").lower() for tag in tags}
-                    if "tags" not in row and not any("tags" in event for event in events):
+                    if "tags" not in row and not any(
+                        "tags" in event for event in events
+                    ):
                         continue
                     if slugs.intersection({"politics", "us-election"}):
-                        slug = next((event["slug"] for event in events if event.get("slug")), row.get("slug") or "")
-                        classified[cid] = {"question": str(row.get("question") or "Unknown market"),
-                                           "category": "Politics", "link": f"https://polymarket.com/event/{slug}"}
+                        slug = next(
+                            (event["slug"] for event in events if event.get("slug")),
+                            row.get("slug") or "",
+                        )
+                        classified[cid] = {
+                            "question": str(row.get("question") or "Unknown market"),
+                            "category": "Politics",
+                            "link": f"https://polymarket.com/event/{slug}",
+                        }
                     elif cid not in classified:
                         classified[cid] = None
         return classified
@@ -152,8 +208,11 @@ class Client:
         try:
             profile = self.get(f"{GAMMA_API}/public-profile", {"address": wallet})
             if isinstance(profile, dict) and profile.get("createdAt"):
-                result["account_created_ts"] = int(datetime.fromisoformat(
-                    profile["createdAt"].replace("Z", "+00:00")).timestamp())
+                result["account_created_ts"] = int(
+                    datetime.fromisoformat(
+                        profile["createdAt"].replace("Z", "+00:00")
+                    ).timestamp()
+                )
         except (UpstreamError, ValueError, TypeError):
             log.warning("Wallet profile unavailable")
         try:
@@ -166,19 +225,4 @@ class Client:
             result["portfolio_value"] = value
         except (UpstreamError, ValueError, TypeError, KeyError):
             log.warning("Wallet valuation unavailable")
-        if self.settings.etherscan_key:
-            try:
-                response = self.get("https://api.etherscan.io/v2/api", {
-                    "chainid": 137, "module": "account", "action": "txlist", "address": wallet,
-                    "startblock": 0, "endblock": 99999999, "page": 1, "offset": 10,
-                    "sort": "asc", "apikey": self.settings.etherscan_key})
-                if not isinstance(response, dict) or response.get("status") != "1":
-                    raise ValueError("Funding response unavailable")
-                incoming = [t for t in response["result"] if t.get("to", "").lower() == wallet
-                            and t.get("isError") == "0" and int(t.get("value", 0)) > 0]
-                if incoming:
-                    sender = incoming[0]["from"].lower()
-                    result["funding_source"] = "Observed sender: " + KNOWN_WALLETS.get(sender, sender)
-            except (UpstreamError, ValueError, TypeError, KeyError):
-                log.warning("Funding lookup unavailable")
         return result

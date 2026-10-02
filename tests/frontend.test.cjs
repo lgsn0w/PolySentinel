@@ -179,6 +179,7 @@ function createRuntime({ localStorage, fetch }) {
         update() {}
     }
     const context = vm.createContext({
+        window: {},
         AbortController,
         Chart,
         Date: RuntimeDate,
@@ -229,6 +230,22 @@ function descendants(element, tagName) {
 function flush() {
     return new Promise(resolve => setImmediate(resolve));
 }
+
+test('Portuguese dashboard stays localized after live refresh and preserves market text', () => {
+    const cached = storage({ poly_dashboard_data: JSON.stringify(baseHomeData()) });
+    const runtime = createRuntime({ localStorage: cached, fetch: async () => assert.fail('unexpected fetch') });
+    runtime.document.documentElement = { lang: 'pt-BR' };
+    runtime.document.getElementById('ui-translations').textContent = JSON.stringify({ LIVE: 'AO VIVO', STALE: 'DESATUALIZADO', 'No volume yet': 'Ainda sem volume' });
+    vm.runInContext(fs.readFileSync(path.join(root, 'static', 'localization.js'), 'utf8'), runtime.context);
+    vm.runInContext(scriptFrom('home.html'), runtime.context);
+    runtime.context.input = baseHomeData({ largest_whales: [{ market_question: 'Will Yes win?', total_size: 10, whale_address: '0x' + 'a'.repeat(40), bet_link: 'https://polymarket.com/event/test' }] });
+    vm.runInContext('input.scanner.last_success = Date.now() / 1000; renderDashboard(input)', runtime.context);
+    assert.equal(runtime.document.getElementById('live-status').textContent, 'AO VIVO');
+    assert.match(runtime.document.getElementById('global-timer').innerText, /^Última atualização:/);
+    assert.match(runtime.document.getElementById('largest-whales').textContent, /Will Yes win\?/);
+    runtime.advanceTimers(90001);
+    assert.equal(runtime.document.getElementById('live-status').textContent, 'DESATUALIZADO');
+});
 
 test('home renders malicious API strings as text and rejects unsafe links', () => {
     const cached = storage({ poly_dashboard_data: JSON.stringify(baseHomeData()) });

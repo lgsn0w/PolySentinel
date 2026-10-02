@@ -1,203 +1,192 @@
 {% extends "layout.html" %}
-{% block title %}Developer Profile{% endblock %}
-
-{% block head %}
-<style>
-    .profile-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 30px; margin-bottom: 24px; display: flex; gap: 30px; align-items: flex-start; }
-
-    .profile-pic {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        border: 3px solid #f1e05a;
-        flex-shrink: 0;
-        margin-left: 30px;
-        overflow: hidden;
-        padding: 0;
-        background: #21262d;
-    }
-
-    .profile-info { flex: 1; }
-
-    .name-title { font-size: 28px; color: #e6edf3; font-weight: 700; margin: 0 0 5px 0; }
-    .uni-title { font-size: 16px; color: #8b949e; margin: 0 0 15px 0; display: flex; align-items: center; gap: 8px; }
-
-    .stack-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
-    .stack-badge { background: rgba(56, 139, 253, 0.1); border: 1px solid rgba(56, 139, 253, 0.3); color: #58a6ff; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-family: monospace; font-weight: 600; }
-    .stack-badge.core { background: rgba(63, 185, 80, 0.1); border-color: rgba(63, 185, 80, 0.3); color: #3fb950; }
-    .stack-badge.wip { background: rgba(210, 153, 34, 0.1); border-color: rgba(210, 153, 34, 0.3); color: #d29922; }
-
-    .section-title { font-size: 14px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin: 40px 0 15px 0; border-bottom: 1px solid #30363d; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-
-    .exp-box { background: rgba(255,255,255,0.02); border-left: 3px solid #58a6ff; padding: 20px; margin-bottom: 20px; border-radius: 0 6px 6px 0; }
-    .exp-role { font-size: 18px; color: #e6edf3; font-weight: 600; }
-    .exp-date { font-size: 13px; color: #8b949e; font-family: monospace; margin-bottom: 15px; display: block; }
-
-    .lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 10px; }
-    .lang-col h4 { color: #8b949e; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #30363d; padding-bottom: 5px; }
-    .text-content { font-size: 14px; color: #c9d1d9; line-height: 1.6; }
-    .text-content strong { color: #e6edf3; }
-
-    .project-highlight { background: #0d1117; border: 1px solid #30363d; padding: 20px; border-radius: 6px; margin-top: 15px; }
-
-    @media (max-width: 768px) {
-        .profile-card { flex-direction: column; align-items: center; text-align: center; }
-        .profile-pic { margin-left: 0; margin-bottom: 20px; }
-        .lang-grid { grid-template-columns: 1fr; gap: 20px; }
-    }
-</style>
-{% endblock %}
+{% block title %}Developer · PolySentinel{% endblock %}
 
 {% block content %}
-<header>
-    <h1 style="margin:0; font-size: 24px;">Perfil / Profile</h1>
-    <div style="font-size:12px; color:#8b949e;">Habilidades, Portfolio e Projetos / Engineering Portfolio & Technical Background</div>
+<div class="doc">
+<header class="page-head">
+    <h1 class="page-title"><span lang="en">Developer</span><span lang="pt-BR">Desenvolvedor</span></h1>
+    <span class="page-sub"><span lang="en">Profile and portfolio</span><span lang="pt-BR">Perfil e portfólio</span></span>
 </header>
 
-<div style="text-align: center; margin-bottom: 24px; color: #e6edf3; font-size: 14px; border: 1px dashed #30363d; padding: 12px; border-radius: 6px; background: rgba(22, 27, 34, 0.5);">
-    <p style="margin:0 0 4px 0;">Disponível para novas oportunidades e desafios técnicos.</p>
-    <p style="margin:0; color: #8b949e;"><em>Currently open to new opportunities and technical challenges.</em></p>
-</div>
+<p class="note-line">
+    <span lang="pt-BR">Disponível para novas oportunidades e desafios técnicos.</span>
+    <span lang="en">Currently open to new opportunities and technical challenges.</span>
+</p>
 
-<div class="profile-card">
-    <div class="profile-pic">
-        <i class="fas fa-user" aria-hidden="true" style="font-size:70px; color:#58a6ff;"></i>
-    </div>
-    <div class="profile-info">
-        <h2 class="name-title">Lucas Gabriel</h2>
-        <div class="uni-title"><i class="fas fa-graduation-cap"></i>Ciência da Computação / Computer Science Degree </div>
-
-        <div style="font-size: 14px; color: #c9d1d9; max-width: 600px; line-height: 1.5;">
-            Engenheiro de Software Full Stack especializado em performance backend.
-            <br>
-            <span style="color:#8b949e; font-size:13px;">Software Engineer specialized in backend performance and data-driven applications. Passionate about financial forensics and real-time systems.</span>
-        </div>
-
-        <div class="stack-grid">
-            <span class="stack-badge core">Python</span>
-            <span class="stack-badge core">C#</span>
-            <span class="stack-badge core">Java</span>
-            <span class="stack-badge">Flask</span>
-            <span class="stack-badge">Spring Boot</span>
-            <span class="stack-badge">SQL</span>
-            <span class="stack-badge">Linux</span>
-            <span class="stack-badge">.Net</span>
-        </div>
-    </div>
-</div>
-
-<div class="section-title">
-    <span><i class="fas fa-briefcase"></i>Experiência Profissional / Professional Experience</span>
-    <span style="font-size:11px; background:#238636; color:white; padding:2px 6px; border-radius:4px;">2 ANOS / 2 YEARS</span>
-</div>
-
-<div class="exp-box">
-    <div class="exp-role">Desenvolvedor Full Stack / Full Stack Developer</div>
-    <span class="exp-date">2024 - 2026</span>
-
-    <div class="lang-grid">
-        <div class="lang-col">
-            <h4>Português</h4>
-            <div class="text-content">
-                <ul style="padding-left: 15px; margin: 0;">
-                    <li style="margin-bottom:10px;">
-                        Atuei na engenharia de dados desenvolvendo scripts de automação em <strong>Python</strong> para integração e atualização de codebases legadas, resultando em uma otimização <strong>exponencial</strong> no tempo de processamento.
-                    </li>
-                    <li style="margin-bottom:10px;">
-                        Colaborei no ciclo completo de desenvolvimento de aplicações em <strong>C#</strong> e <strong>Java</strong>, entregando soluções que aumentaram a eficiência administrativa em <strong>200%</strong> através da redução drástica de intervenções manuais.
-                    </li>
-                    <li>
-                        Conduzi a manutenção de sistemas e processos de homologação (QA) em ambiente <strong>Linux</strong>, garantindo a entrega pontual e a estabilidade de diversos sistemas ligados a gestão escolar.
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="lang-col">
-            <h4>English</h4>
-            <div class="text-content">
-                <ul style="padding-left: 15px; margin: 0;">
-                    <li style="margin-bottom:10px;">
-                        <strong>Automated Data Pipelines:</strong> Engineered Python scripts to integrate and update legacy codebases, reducing data processing <strong>exponentially</strong> and eliminating manual entry errors.
-                    </li>
-                    <li style="margin-bottom:10px;">
-                        <strong>Workflow Optimization:</strong> Developed internal tooling using <strong>C#</strong> and <strong>Java</strong>, driving a <strong>200% increase</strong> in administrative efficiency through workflow automation.
-                    </li>
-                    <li>
-                        <strong>System Reliability:</strong> Managed system maintenance and QA testing cycles on <strong>Linux</strong> environments, ensuring the on-time deployment of many critical school management systems.
-                    </li>
-                </ul>
-            </div>
+<section class="doc-panel profile">
+    <div class="avatar" aria-hidden="true">LG</div>
+    <div>
+        <h2 class="profile-name">Lucas Gabriel</h2>
+        <p class="profile-role"><span lang="pt-BR">Ciência da Computação</span><span lang="en">Computer Science</span></p>
+        <p class="doc-text" lang="pt-BR">
+            Engenheiro de Software Full Stack especializado em performance backend e aplicações orientadas por dados.
+            Apaixonado por análise forense financeira e sistemas em tempo real.
+        </p>
+        <p class="doc-text" lang="en">
+            Software Engineer specialized in backend performance and data-driven applications.
+            Passionate about financial forensics and real-time systems.
+        </p>
+        <div class="tags">
+            <span class="tag">Python</span>
+            <span class="tag">C#</span>
+            <span class="tag">Java</span>
+            <span class="tag">Flask</span>
+            <span class="tag">Spring Boot</span>
+            <span class="tag">SQL</span>
+            <span class="tag">Linux</span>
+            <span class="tag">PHP</span>
         </div>
     </div>
+</section>
+
+<div class="doc-section">
+    <h2><span lang="en">Professional experience</span><span lang="pt-BR">Experiência profissional</span></h2>
+    <span>2024 - 2026 · Vitória, ES</span>
 </div>
 
-<div class="section-title">
-    <span><i class="fas fa-tools"></i> Em Andamento / Developing</span>
-    <span style="font-size:11px; background:#d29922; color:white; padding:2px 6px; border-radius:4px;">ANDROID / JAVA</span>
+<section class="doc-panel">
+    <div class="role">Acelera Concursos</div>
+    <div class="role-date"><span lang="pt-BR">Desenvolvedor</span><span lang="en">Developer</span> · 2026 · Vitória, ES</div>
+
+    <div class="two-col">
+        <div lang="pt-BR">
+            <h3>Português</h3>
+            <ul>
+                <li>Projetei e implementei integrações com gateways de pagamento via <strong>APIs REST</strong>, processando com segurança mais de <strong>22 mil transações por mês</strong>.</li>
+                <li>Implementei tratamento de falhas, reprocessamento e registro de logs nas integrações, garantindo rastreabilidade ponta a ponta dos eventos financeiros.</li>
+                <li>Modelei schemas em bancos relacionais e não relacionais e otimizei consultas críticas, reduzindo o tempo de execução em <strong>mais de 50%</strong>.</li>
+                <li>Padronizei ambientes de desenvolvimento conteinerizados, reduzindo o setup do ambiente para apenas alguns minutos.</li>
+            </ul>
+        </div>
+        <div lang="en">
+            <h3>English</h3>
+            <ul>
+                <li>Designed and implemented payment gateway integrations through <strong>REST APIs</strong>, securely processing more than <strong>22,000 transactions per month</strong>.</li>
+                <li>Implemented failure handling, reprocessing, and integration logs to provide end-to-end traceability for financial events.</li>
+                <li>Designed relational and non-relational database schemas and optimized critical queries, reducing execution time by <strong>more than 50%</strong>.</li>
+                <li>Standardized containerized development environments, reducing setup time to just a few minutes.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="doc-panel">
+    <div class="role">SENAC</div>
+    <div class="role-date"><span lang="pt-BR">Instrutor de Programação</span><span lang="en">Programming Instructor</span> · 2026 · Vitória, ES</div>
+
+    <div class="two-col">
+        <div lang="pt-BR">
+            <h3>Português</h3>
+            <ul>
+                <li>Ministrei aulas de algoritmos, programação orientada a objetos e desenvolvimento web para turmas iniciantes.</li>
+                <li>Produzi o material didático das aulas, com apresentações, exercícios e projetos práticos versionados no <strong>GitHub</strong>.</li>
+                <li>Adaptei conteúdo e ritmo a cada turma, com trilhas de exercícios de reforço e de desafio.</li>
+            </ul>
+        </div>
+        <div lang="en">
+            <h3>English</h3>
+            <ul>
+                <li>Taught algorithms, object-oriented programming, and web development to beginner classes.</li>
+                <li>Created teaching materials, including presentations, exercises, and practical projects versioned on <strong>GitHub</strong>.</li>
+                <li>Adapted content and pacing to each class, with exercise tracks for reinforcement and additional challenges.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="doc-panel">
+    <div class="role"><span lang="pt-BR">Secretaria Municipal de Educação de Vitória</span><span lang="en">Vitória Municipal Department of Education</span></div>
+    <div class="role-date"><span lang="pt-BR">Desenvolvedor</span><span lang="en">Developer</span> · 2024 - 2025 · Vitória, ES</div>
+
+    <div class="two-col">
+        <div lang="pt-BR">
+            <h3>Português</h3>
+            <ul>
+                <li>Automatizei o processamento em larga escala de relatórios administrativos e inventários, consolidando planilhas e extrações de sistemas legados e reduzindo o ciclo em <strong>cerca de duas semanas</strong>, com eliminação das inconsistências operacionais.</li>
+                <li>Atuei na sustentação de sistemas internos críticos em produção, investigando incidentes, corrigindo falhas e desenvolvendo integrações entre plataformas.</li>
+                <li>Monitorei e mantive servidores de aplicação em produção, garantindo estabilidade operacional e <strong>99,9% de uptime</strong>.</li>
+            </ul>
+        </div>
+        <div lang="en">
+            <h3>English</h3>
+            <ul>
+                <li>Automated large-scale processing of administrative reports and inventories, consolidating spreadsheets and legacy system exports to shorten the cycle by <strong>about two weeks</strong> and eliminate operational inconsistencies.</li>
+                <li>Supported critical internal production systems by investigating incidents, fixing failures, and developing integrations between platforms.</li>
+                <li>Monitored and maintained production application servers, ensuring operational stability and <strong>99.9% uptime</strong>.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<div class="doc-section">
+    <h2><span lang="en">Project: Lumen</span><span lang="pt-BR">Projeto: Lumen</span></h2>
+    <span>Android · Offline</span>
 </div>
 
-<div class="profile-card" style="display:block; padding: 20px; border-color: #d29922;">
-    <div class="lang-grid" style="margin-top:0;">
-        <div class="lang-col">
-            <h4>Gestor Imobiliário Mobile</h4>
-            <p class="text-content">
-                Ferramenta comercial mobile voltada para gestores de imóveis. O aplicativo centraliza o acompanhamento de pagamentos, gestão de pendências financeiras e histórico cadastral de inquilinos e propriedades.
-                <br><br>
-                <strong>Foco:</strong> Interface otimizada para uso em campo e controle total sobre a carteira de locação.
+<section class="doc-panel">
+    <div class="two-col">
+        <div lang="pt-BR">
+            <h3>App Android de leitura bíblica</h3>
+            <p>
+                Desenvolvi um app Android nativo <strong>100% offline</strong>, com <strong>164 mil versículos</strong> em <strong>5 traduções e 3 idiomas</strong>.
             </p>
+            <p>Estruturei o app em <strong>MVVM</strong>, com repositórios sobre múltiplos bancos locais e fluxo de dados reativo que atualiza a interface a cada alteração.</p>
+            <p>Implementei planos de leitura com progresso por capítulo, sequência de dias lidos, notas em versículos e favoritos.</p>
         </div>
-
-        <div class="lang-col">
-            <h4>Commercial Real Estate Manager</h4>
-            <p class="text-content">
-                Developing a native mobile solution for Property Management. Implementing <strong>Java</strong>-based MVC patterns to handle tenant lifecycle states and financial tracking.
-                <br><br>
-                <strong>Key Engineering:</strong> Designing local SQLite persistence to ensure data availability for field managers in low-connectivity environments, with asynchronous background sync for payment reconciliation.
+        <div lang="en">
+            <h3>Android Bible reading app</h3>
+            <p>
+                Developed a native Android app that works <strong>100% offline</strong>, with <strong>164,000 verses</strong> across <strong>5 translations and 3 languages</strong>.
             </p>
+            <p>Structured the app using <strong>MVVM</strong>, repositories over multiple local databases, and reactive data flows that update the interface whenever data changes.</p>
+            <p>Implemented reading plans with chapter progress, reading streaks, verse notes, and bookmarks.</p>
         </div>
     </div>
-    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #30363d;">
-        <span class="stack-badge wip">Android SDK</span>
-        <span class="stack-badge wip">Java</span>
-        <span class="stack-badge wip">Mobile Architecture</span>
+    <div class="tags">
+        <span class="tag">Android</span>
+        <span class="tag">MVVM</span>
+        <span class="tag">Offline</span>
+        <span class="tag"><span lang="en">Reactive data</span><span lang="pt-BR">Dados reativos</span></span>
     </div>
+</section>
+
+<div class="doc-section">
+    <h2><span lang="en">Project: PolySentinel</span><span lang="pt-BR">Projeto: PolySentinel</span></h2>
+    <span><span lang="en">Live demo</span><span lang="pt-BR">Demonstração ao vivo</span></span>
 </div>
 
-<div class="section-title">
-    <span><i class="fas fa-code-branch"></i> Project: PolySentinel</span>
-    <span style="font-size:11px; background:#1f6feb; color:white; padding:2px 6px; border-radius:4px;">LIVE DEMO</span>
-</div>
-
-<div class="profile-card" style="display:block; padding: 20px;">
-    <div class="lang-grid" style="margin-top:0;">
-        <div class="lang-col">
-            <h4>Arquitetura e Escopo (Português)</h4>
-            <p class="text-content">
+<section class="doc-panel">
+    <div class="two-col">
+        <div lang="pt-BR">
+            <h3>Arquitetura e escopo</h3>
+            <p>
                 Desenvolvido para detectar acumulação de capital institucional antes da mídia tradicional.
-                <br><br>
-                <strong>Backend de Duplo Fluxo:</strong> Arquitetura dividida onde o <em>Stream A</em> processa dados de varejo para visualização, e o <em>Stream B</em> utiliza lógica de "Escada" para identificar baleias.
-                <br><br>
-                <strong>Performance:</strong> Solução otimizada para limites de API utilizando agregação em memória e controle de concorrência, mantendo a latência abaixo de 200ms.
+            </p>
+            <p>
+                <strong>Backend de duplo fluxo:</strong> arquitetura dividida onde o <em>Stream A</em> processa dados de varejo para visualização, e o <em>Stream B</em> utiliza lógica de "Escada" para identificar baleias.
+            </p>
+            <p>
+                <strong>Performance:</strong> solução otimizada para limites de API utilizando agregação em memória e controle de concorrência, mantendo a latência abaixo de 200ms.
             </p>
         </div>
-
-        <div class="lang-col">
-            <h4>Architecture & Engineering (English)</h4>
-            <p class="text-content">
+        <div lang="en">
+            <h3>Architecture and engineering</h3>
+            <p>
                 Built to detect institutional capital accumulation before news cycles.
-                <br><br>
-                <strong>Dual-Pipeline Backend:</strong> Engineered a split-stream architecture. <em>Stream A</em> handles high-frequency retail data for visualization, while <em>Stream B</em> utilizes a "Ladder Logic" window to aggregate whale volume.
-                <br><br>
-                <strong>Performance:</strong> Overcame API rate limits by implementing in-memory bucketing and concurrency control, maintaining <strong><200ms latency</strong> without database contention.
+            </p>
+            <p>
+                <strong>Dual-pipeline backend:</strong> a split-stream architecture. <em>Stream A</em> handles high-frequency retail data for visualization, while <em>Stream B</em> uses a "Ladder Logic" window to aggregate whale volume.
+            </p>
+            <p>
+                <strong>Performance:</strong> overcame API rate limits with in-memory bucketing and concurrency control, maintaining <strong>&lt;200ms latency</strong> without database contention.
             </p>
         </div>
     </div>
-    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #30363d;">
-        <span class="stack-badge">Real-Time Systems</span>
-        <span class="stack-badge">Financial Forensics</span>
-        <span class="stack-badge">Python / Flask</span>
+    <div class="tags">
+        <span class="tag"><span lang="en">Real-time systems</span><span lang="pt-BR">Sistemas em tempo real</span></span>
+        <span class="tag"><span lang="en">Financial forensics</span><span lang="pt-BR">Análise forense financeira</span></span>
+        <span class="tag">Python / Flask</span>
     </div>
+</section>
 </div>
-
 {% endblock %}

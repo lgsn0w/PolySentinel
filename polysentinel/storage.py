@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS trades (
 CREATE INDEX IF NOT EXISTS trades_timestamp ON trades(timestamp);
 CREATE INDEX IF NOT EXISTS trades_wallet ON trades(whale_address,timestamp);
 CREATE INDEX IF NOT EXISTS trades_window ON trades(whale_address,condition_id,side,outcome,timestamp);
+CREATE INDEX IF NOT EXISTS trades_cotiming ON trades(condition_id,side,outcome,timestamp);
 CREATE TABLE IF NOT EXISTS pending_trades (
  trade_id TEXT PRIMARY KEY, condition_id TEXT NOT NULL, payload TEXT NOT NULL
 );
@@ -26,7 +27,36 @@ CREATE TABLE IF NOT EXISTS scanner_state (
  last_success INTEGER, last_trade INTEGER, status TEXT NOT NULL DEFAULT 'starting'
 );
 INSERT OR IGNORE INTO scanner_state(id) VALUES(1);
-PRAGMA user_version=1;
+CREATE TABLE IF NOT EXISTS funding_reports (
+ address TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'queued',
+ requested_at INTEGER NOT NULL, started_at INTEGER, checked_at INTEGER,
+ generation INTEGER NOT NULL DEFAULT 1, report TEXT
+);
+CREATE INDEX IF NOT EXISTS funding_queue ON funding_reports(status,requested_at);
+CREATE TABLE IF NOT EXISTS funding_requests (
+ id INTEGER PRIMARY KEY, address TEXT NOT NULL, requested_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS funding_requests_time ON funding_requests(requested_at);
+CREATE TABLE IF NOT EXISTS funding_edges (
+ root TEXT NOT NULL REFERENCES funding_reports(address), edge_id TEXT NOT NULL,
+ sender TEXT NOT NULL, receiver TEXT NOT NULL, contract TEXT NOT NULL,
+ amount TEXT NOT NULL, timestamp INTEGER NOT NULL, tx_hash TEXT NOT NULL,
+ kind TEXT NOT NULL, depth INTEGER NOT NULL, payload TEXT NOT NULL,
+ PRIMARY KEY(root,edge_id)
+);
+CREATE INDEX IF NOT EXISTS funding_sender ON funding_edges(sender,contract,receiver);
+CREATE INDEX IF NOT EXISTS funding_receiver ON funding_edges(receiver,contract,sender);
+CREATE TABLE IF NOT EXISTS receipt_cache (
+ tx_hash TEXT PRIMARY KEY, checked_at INTEGER NOT NULL, status TEXT NOT NULL,
+ payload TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS classification_jobs (
+ address TEXT PRIMARY KEY REFERENCES funding_reports(address), status TEXT NOT NULL,
+ requested_at INTEGER NOT NULL, started_at INTEGER, checked_at INTEGER,
+ generation INTEGER NOT NULL DEFAULT 1, result TEXT
+);
+CREATE INDEX IF NOT EXISTS classification_queue ON classification_jobs(status,requested_at);
+PRAGMA user_version=3;
 """
 
 
@@ -36,9 +66,9 @@ class Store:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self.connection() as conn:
             version = conn.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1):
+            if version not in (0, 1, 2, 3):
                 raise RuntimeError("Unsupported database schema version")
-            conn.executescript(SCHEMA)
+            conn.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + "\nCOMMIT;")
 
     @contextmanager
     def connection(self):
@@ -54,7 +84,9 @@ class Store:
 
     def state(self):
         with self.connection() as conn:
-            return dict(conn.execute("SELECT * FROM scanner_state WHERE id=1").fetchone())
+            return dict(
+                conn.execute("SELECT * FROM scanner_state WHERE id=1").fetchone()
+            )
 
     def set_status(self, status):
         with self.connection() as conn:
