@@ -14,11 +14,19 @@ O explorador de transferências não detecta identidades nem comprova a origem f
 
 ## Visão da interface
 
-![Painel da interface original do PolySentinel](static/dashboard.png)
+### Painel
 
-![Dossiê da interface original do PolySentinel](static/Insider.png)
+![Painel do PolySentinel em português brasileiro, com indicadores de atividade e gráfico de volume](docs/screenshots/dashboard-pt-br.png)
 
-Capturas da interface original; elas não representam o visual atual.
+### Carteiras sinalizadas
+
+![Lista de carteiras sinalizadas, posições, volume monitorado e acesso aos dossiês](docs/screenshots/insiders-pt-br.png)
+
+### Explorador de transferências
+
+![Classificação de recibos e entradas diretas observadas no explorador de transferências](docs/screenshots/transfers-pt-br.png)
+
+Capturas da interface atual em PT-BR, fornecidas em 1º de outubro de 2026. Os valores representam o momento da captura, não dados em tempo real. O exemplo de transferências mostra cobertura parcial; categorias desconhecidas e ausência de depósitos verificados não comprovam ausência de financiamento.
 
 ## Arquitetura
 
